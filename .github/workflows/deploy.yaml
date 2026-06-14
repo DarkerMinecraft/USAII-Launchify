@@ -1,12 +1,9 @@
-name: Deploy Full Stack
+name: Deploy Full Stack (Debug)
 
 on:
   push:
     branches:
       - main
-    paths:
-      - "frontend/**"
-      - "backend/**"
 
 jobs:
   detect-changes:
@@ -16,9 +13,18 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Detect changes
+      - name: Show commit info
+        run: |
+          echo "===== COMMIT INFO ====="
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Ref: $GITHUB_REF"
+          echo "SHA: $GITHUB_SHA"
+          git log -1 --name-status
+
+      - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
@@ -28,27 +34,64 @@ jobs:
             backend:
               - 'backend/**'
 
+      - name: Print detection result
+        run: |
+          echo "===== PATH FILTER RESULT ====="
+          echo "Frontend changed: ${{ steps.filter.outputs.frontend }}"
+          echo "Backend changed: ${{ steps.filter.outputs.backend }}"
+
   deploy-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy Frontend via SSH
+      - name: Debug SSH + Deploy Frontend
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: 3.133.7.139
           username: DarkerM
           key: ${{ secrets.GITHUBACTIONS }}
+          debug: true
           script: |
             set -e
+
+            echo "===== FRONTEND DEPLOY START ====="
+
+            echo "User:"
+            whoami
+
+            echo "Current directory:"
+            pwd
+
+            echo "Checking frontend folder:"
+            ls -la ~/USAII/frontend || echo "Frontend folder missing!"
+
             cd ~/USAII/frontend
 
+            echo "Git status BEFORE pull:"
+            git status
+            git rev-parse HEAD
+
+            echo "Pulling latest changes..."
             git pull origin main
+
+            echo "Git status AFTER pull:"
+            git rev-parse HEAD
+
+            echo "Installing dependencies..."
             npm install
+
+            echo "Building frontend..."
             npm run build
 
+            echo "PM2 status:"
+            pm2 list || true
+
+            echo "Restarting frontend..."
             pm2 restart frontend || pm2 start npm --name frontend -- start
+
+            echo "===== FRONTEND DEPLOY DONE ====="
 
   deploy-backend:
     needs: detect-changes
@@ -56,17 +99,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy Backend via SSH
+      - name: Debug SSH + Deploy Backend
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: 3.133.7.139
           username: DarkerM
           key: ${{ secrets.GITHUBACTIONS }}
+          debug: true
           script: |
             set -e
+
+            echo "===== BACKEND DEPLOY START ====="
+
+            echo "User:"
+            whoami
+
+            echo "Checking backend folder:"
+            ls -la ~/USAII/backend || echo "Backend folder missing!"
+
             cd ~/USAII/backend
 
+            echo "Git status BEFORE pull:"
+            git status
+            git rev-parse HEAD
+
+            echo "Pulling latest changes..."
             git pull origin main
+
+            echo "Git status AFTER pull:"
+            git rev-parse HEAD
+
+            echo "Installing dependencies..."
             npm install
 
-            pm2 restart backend || pm2 start dist/index.js --name backend
+            echo "PM2 status:"
+            pm2 list || true
+
+            echo "Restarting backend..."
+            pm2 restart backend || pm2 start index.js --name backend
+
+            echo "===== BACKEND DEPLOY DONE ====="
