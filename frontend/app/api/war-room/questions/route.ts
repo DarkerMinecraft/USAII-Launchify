@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini, parseJSON, GeminiError, GeminiParseError } from "@/lib/gemini";
+import { callLLM, parseJSON, GeminiParseError, LLMError } from "@/lib/llm";
 import { QUESTION_GEN_PROMPT } from "@/prompts/agents";
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const raw = await callGemini(QUESTION_GEN_PROMPT, `Founder's idea: ${ideaSummary}`, {
+    const raw = await callLLM(QUESTION_GEN_PROMPT, `Founder's idea: ${ideaSummary}`, {
       temperature: 0.4,
     });
     const questions = parseJSON<string[]>(raw);
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof GeminiParseError) {
       return NextResponse.json({ error: "AI returned malformed output" }, { status: 502 });
     }
-    if (err instanceof GeminiError) {
+    if (err instanceof LLMError) {
       return NextResponse.json({ error: "AI service is unavailable" }, { status: 502 });
     }
     throw err;

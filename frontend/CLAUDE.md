@@ -46,7 +46,7 @@ Powered by Gemini multimodal. Analyzes founder pitches and returns structured fe
 - **Styling:** Tailwind CSS 4 + shadcn/ui
 - **Node graph:** React Flow (Assumption Map visualization — do not substitute)
 - **Animation:** Framer Motion (sequential message reveals, map transitions, hover states)
-- **AI calls:** All Gemini API calls originate from Next.js API routes (`/app/api/`) — never from the Express backend
+- **AI calls:** All LLM calls originate from Next.js API routes (`/app/api/`) through the provider layer — never from the Express backend
 - **State:** React state only — no localStorage or sessionStorage
 
 ### Backend
@@ -57,9 +57,10 @@ Powered by Gemini multimodal. Analyzes founder pitches and returns structured fe
 - **Auth sync:** `GET /v1/auth/sync` already exists — upserts user on login
 
 ### AI Model
-- **Primary:** Gemini 2.0 Flash (Google AI Studio free tier)
-- All Gemini calls go through a single service file: `frontend/src/lib/gemini.ts`
-- All system prompts stored as named constants in `frontend/src/prompts/agents.ts`
+- **Primary:** Gemini 3.1 Flash-Lite (Google AI Studio)
+- **Fallback:** Groq Qwen3-32B (`qwen/qwen3-32b`)
+- All model calls go through the provider layer: `frontend/lib/llm.ts` orchestrates `frontend/lib/gemini.ts` primary and `frontend/lib/groq.ts` fallback
+- All system prompts stored as named constants in `frontend/prompts/agents.ts`
 
 ### Infrastructure
 - **Deployment:** Server at `3.133.7.139`, domain `usaii.darkermine.dev`
@@ -168,17 +169,15 @@ The Idea Canvas is a JSON object stored in the `canvas` column on `WarRoomSessio
       "status": "VALIDATED | UNVALIDATED | NEEDS_INFO",
       "agentSource": "SKEPTIC | STRATEGIST | OPERATOR",
       "explanation": "string",
-      "remediation": {
-        "action": "VALIDATE | MODIFY | REMOVE",
-        "howTested": "string",
-        "whatFound": "string",
-        "resolvedAt": "ISO timestamp"
-      }
+      "howToTest": "string (AI suggestion; optional for VALIDATED)",
+      "remediation": null
     }
   ],
   "lastUpdated": "ISO timestamp"
 }
 ```
+
+Assumption `id` is assigned at synthesis time as `node_001`, `node_002`, etc. `howToTest` is the AI's validation suggestion; `remediation` is the founder's later Phase 7 response and remains `null` until filled.
 
 **Update lifecycle:**
 - War Room completes → canvas initialized with assumption nodes
@@ -434,7 +433,9 @@ frontend/
 │       └── auth/
 │           └── sync/route.ts
 ├── lib/
-│   └── gemini.ts                       # All Gemini API calls
+│   ├── llm.ts                          # Provider orchestration: Gemini primary, Groq fallback
+│   ├── gemini.ts                       # Gemini provider + shared JSON parser
+│   └── groq.ts                         # Groq fallback provider
 ├── components/
 │   ├── war-room/
 │   │   ├── Questionnaire.tsx
@@ -465,7 +466,7 @@ backend/
 
 ## What Not To Do
 
-- Do not call Gemini from the Express backend — all AI calls go through Next.js API routes
+- Do not call LLM providers from the Express backend — all AI calls go through Next.js API routes and `frontend/lib/llm.ts`
 - Do not build Launchpad agents or Pitch Coach features — placeholder pages only
 - Do not stream AI responses — full response after loading state
 - Do not present AI output as a verdict or definitive answer
@@ -495,7 +496,7 @@ These were explicitly decided and should not be revisited without flagging:
 - **Flat file layout** — no `src/` directory. Code lives at `frontend/{app,lib,components,prompts}`. The `tsconfig.json` `@/*` alias points to `"./*"` (repo root of frontend), which correctly resolves `@/lib`, `@/components`, etc.
 - **Auth enforced from the start** — `checkJwt` is applied to both `/v1/auth` and `/v1/sessions` routers in `index.ts`. Session routes are never open, even during development.
 - **canvas JSON is the source of truth for assumption state** — the `AssumptionNode` table is for structured DB querying; remediation updates always go through `canvas` PATCH. The frontend reads from canvas, not from the `AssumptionNode` rows, when rendering the map.
-- **No streaming** — all Gemini calls return full responses after a loading state. `EventSource` / streaming is explicitly out of scope.
+- **No streaming** — all LLM calls return full responses after a loading state. `EventSource` / streaming is explicitly out of scope.
 - **All prompts in `prompts/agents.ts`** — zero inline prompt strings allowed in components or API routes.
 
 ---
@@ -546,7 +547,7 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 ### Phase 0 — Groundwork & Verification
 - [x] Read Next 16 App Router changes, fix `tsconfig.json` path aliases
 - [x] Move `frontend/ui/button.tsx` → `frontend/components/ui/button.tsx`
-- [x] Create `frontend/.env.local` (`GEMINI_API_KEY`, `NEXT_PUBLIC_BACKEND_URL`)
+- [x] Create `frontend/.env.local` (`GEMINI_API_KEY`, `GROQ_API_KEY`, `NEXT_PUBLIC_BACKEND_URL`)
 - [x] Create `backend/.env` (`DATABASE_URL`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`)
 - [x] Add `.env.example` for both, confirm both are gitignored
 
@@ -574,9 +575,9 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [x] Create placeholder pages: `app/launchpad/page.tsx`, `app/pitch-coach/page.tsx`
 - [x] Create empty route files: `app/war-room/page.tsx`, `app/war-room/session/[id]/page.tsx`
 
-### Phase 4 — Gemini Service & Prompts
+### Phase 4 — LLM Service & Prompts
 - [x] Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC, STRATEGIST, OPERATOR; question-gen; round 2/3; assumption-map JSON). No inline prompts anywhere else.
-- [x] Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming
+- [x] Write provider layer — `frontend/lib/llm.ts` with Gemini primary and Groq fallback, non-streaming
 - [x] Build + test `app/api/war-room/questions/route.ts`
 - [x] Build + test `app/api/war-room/debate/route.ts`
 - [x] Build + test `app/api/war-room/assumptions/route.ts`
@@ -622,4 +623,3 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 > 1. Build `components/war-room/Questionnaire.tsx` — one-liner → calls `/api/war-room/questions`, renders 3 AI questions + 5 defaults = 8-question form.
 > 2. Wire submit: `POST /v1/sessions` to persist session, route to `/war-room/session/[id]`.
 > Backend + DB required — run `prisma migrate dev` against a live DB first.
-

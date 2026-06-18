@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini, GeminiError } from "@/lib/gemini";
+import { callLLM, LLMError } from "@/lib/llm";
+import { hasAnsweredQuestionnaire } from "@/lib/questionnaire";
 import {
   SKEPTIC_SYSTEM,
   STRATEGIST_SYSTEM,
@@ -8,16 +9,13 @@ import {
   buildRound2Prompt,
   buildRound3Prompt,
 } from "@/prompts/agents";
+import type { AgentRole, DebateMessage, QA } from "@/lib/types";
 
-const AGENT_SYSTEMS = {
+const AGENT_SYSTEMS: Record<AgentRole, string> = {
   SKEPTIC: SKEPTIC_SYSTEM,
   STRATEGIST: STRATEGIST_SYSTEM,
   OPERATOR: OPERATOR_SYSTEM,
-} as const;
-
-type AgentRole = keyof typeof AGENT_SYSTEMS;
-type QA = { question: string; answer: string };
-type Message = { agent: string; round: number; content: string };
+};
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -25,7 +23,7 @@ export async function POST(req: NextRequest) {
     round?: number;
     ideaSummary?: string;
     questionnaireResponses?: QA[];
-    transcript?: Message[];
+    transcript?: DebateMessage[];
   };
   try {
     body = await req.json();
@@ -49,6 +47,12 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(questionnaireResponses) || questionnaireResponses.length === 0) {
     return NextResponse.json({ error: "questionnaireResponses is required" }, { status: 400 });
   }
+  if (!hasAnsweredQuestionnaire(questionnaireResponses)) {
+    return NextResponse.json(
+      { error: "At least one questionnaire answer is required" },
+      { status: 400 }
+    );
+  }
   // Rounds 2 and 3 respond to prior rounds — a missing transcript means the
   // orchestration is out of order, not a model problem.
   if (round > 1 && (!Array.isArray(transcript) || transcript.length === 0)) {
@@ -68,10 +72,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const content = await callGemini(AGENT_SYSTEMS[agent], userPrompt);
+    const content = await callLLM(AGENT_SYSTEMS[agent], userPrompt);
     return NextResponse.json({ agent, round, content });
   } catch (err) {
-    if (err instanceof GeminiError) {
+    if (err instanceof LLMError) {
       // Surface agent + round so the orchestration hook can show which step
       // failed and offer a retry without losing the rest of the debate.
       return NextResponse.json(

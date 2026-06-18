@@ -1,3 +1,7 @@
+import type { DebateMessage, QA } from "@/lib/types";
+
+const UNANSWERED_TEXT = "(left blank — founder did not answer)";
+
 // ─── Agent system prompts ────────────────────────────────────────────────────
 
 export const SKEPTIC_SYSTEM = `You are THE SKEPTIC — one of three advisors in a War Room debate for FOUNDR, an AI co-pilot for early-stage founders.
@@ -67,16 +71,17 @@ Example: ["Question one?", "Question two?", "Question three?"]`;
 
 // ─── Round context builders ───────────────────────────────────────────────────
 
-type QA = { question: string; answer: string };
-type Message = { agent: string; round: number; content: string };
-
 function formatQA(questionnaire: QA[]): string {
   return questionnaire
-    .map((q, i) => `Q${i + 1}: ${q.question}\nA: ${q.answer}`)
+    .map((q, i) => {
+      const rawAnswer = typeof q.answer === "string" ? q.answer : "";
+      const answer = rawAnswer.trim() ? rawAnswer : UNANSWERED_TEXT;
+      return `Q${i + 1}: ${q.question}\nA: ${answer}`;
+    })
     .join("\n\n");
 }
 
-function formatTranscript(transcript: Message[]): string {
+function formatTranscript(transcript: DebateMessage[]): string {
   return transcript
     .map((m) => `[${m.agent} — Round ${m.round}]\n${m.content}`)
     .join("\n\n---\n\n");
@@ -100,7 +105,7 @@ Give your opening statement. Surface 1–2 of the most important concerns or que
 export function buildRound2Prompt(
   ideaSummary: string,
   questionnaire: QA[],
-  transcript: Message[]
+  transcript: DebateMessage[]
 ): string {
   const round1 = transcript.filter((m) => m.round === 1);
   return `You are in Round 2 (Responses) of a War Room debate.
@@ -120,7 +125,7 @@ Respond to what the other advisors said in Round 1. Agree, push back, or add a n
 export function buildRound3Prompt(
   ideaSummary: string,
   questionnaire: QA[],
-  transcript: Message[]
+  transcript: DebateMessage[]
 ): string {
   // Closing statements reflect on the actual debate (Rounds 1–2), not on peers'
   // closings — so each agent's synthesis is independent.
@@ -142,7 +147,7 @@ Give your closing statement. Identify the 1–2 most critical unresolved questio
 export function buildAssumptionMapPrompt(
   ideaSummary: string,
   questionnaire: QA[],
-  fullTranscript: Message[]
+  fullTranscript: DebateMessage[]
 ): string {
   return `Synthesize the War Room debate below into a structured Assumption Map.
 

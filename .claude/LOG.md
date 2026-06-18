@@ -111,3 +111,14 @@ All session records, change notes, and build decisions go here. Append a dated e
 ### Spec aligned to implementation (Round 3)
 
 - Per user decision, rewrote the CLAUDE.md "Round 3 — Synthesis" section to match the implementation: Round 3 is now **Closing Statements** (3 per-agent debate turns), followed by a **separate single map-synthesis call** (`POST /api/war-room/assumptions`) over the full Rounds 1–3 transcript. Updated the Phase 6 orchestration checklist to: R1 (×3) → R2 (×3) → R3 closings (×3) → assumptions synthesis (×1). No code change — implementation already did this.
+
+### LLM provider fallback
+
+- Installed `groq-sdk`.
+- Added `frontend/lib/groq.ts` using Groq chat completions with Qwen 32B (`qwen/qwen3-32b`) as the fallback model.
+- Added `frontend/lib/llm.ts` as the public provider layer: Gemini remains primary, Groq is tried when Gemini throws `GeminiError`, and routes receive `LLMError` only if all providers fail.
+- Repointed War Room question, debate, and assumptions routes from direct `callGemini` usage to `callLLM`; JSON parsing remains centralized through the Gemini parser export.
+- Added `GROQ_API_KEY` to `frontend/.env.example` and updated `frontend/CLAUDE.md` to describe Gemini primary / Groq fallback.
+- Fixed Groq provider initialization to be lazy inside `callGroq()` so a missing `GROQ_API_KEY` does not crash Gemini-primary requests at module import time.
+- Verified the normal Gemini-primary path through `callLLM`: questions, debate, and assumptions smoke requests all returned 200.
+- Verified the forced fallback path by starting Next with a temporary invalid `GEMINI_API_KEY` while reading the real `GROQ_API_KEY` from `.env.local`; questions, debate, and assumptions all returned 200 via Groq. The assumptions fallback returned `dropped: 3`, so the sanitizer is doing useful work on Qwen output.
