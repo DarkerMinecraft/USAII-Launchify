@@ -60,7 +60,7 @@ export function Sidebar() {
                 isActive
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
-                locked && "opacity-50 pointer-events-none"
+                locked && "opacity-50"
               )}
               aria-disabled={locked}
               tabIndex={locked ? -1 : undefined}

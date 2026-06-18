@@ -88,6 +88,12 @@ router.patch("/:id", async (req, res) => {
       if (!VALID_AGENT_ROLES.has(a?.agentSource)) {
         return res.status(400).json({ error: `assumption.agentSource must be one of: ${[...VALID_AGENT_ROLES].join(", ")}` });
       }
+      if (typeof a?.claim !== "string" || !a.claim.trim()) {
+        return res.status(400).json({ error: "assumption.claim must be a non-empty string" });
+      }
+      if (typeof a?.explanation !== "string" || !a.explanation.trim()) {
+        return res.status(400).json({ error: "assumption.explanation must be a non-empty string" });
+      }
     }
   }
 

@@ -18,7 +18,7 @@ export default function LaunchpadPage() {
         and AI-drafted messaging — all calibrated to your specific idea.
       </p>
 
-      <div className="grid grid-cols-3 gap-3 mt-10 max-w-lg w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-10 max-w-lg w-full">
         {["Customer Connect", "Agent Workspace", "Resource Hub"].map((section) => (
           <div key={section} className="p-3 rounded-lg border border-border bg-surface opacity-50">
             <p className="text-xs font-medium text-foreground">{section}</p>

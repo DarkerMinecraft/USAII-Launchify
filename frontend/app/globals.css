@@ -52,6 +52,16 @@
   --color-agent-strategist: var(--agent-strategist);
   --color-agent-operator: var(--agent-operator);
   --color-surface: var(--surface);
+
+  /* War Room arena Tailwind utilities */
+  --color-war-room-bg: var(--war-room-bg);
+  --color-arena-fill: var(--arena-fill);
+  --color-arena-stroke: var(--arena-stroke);
+  --color-arena-skeptic-stroke: var(--arena-skeptic-stroke);
+  --color-arena-strategist-stroke: var(--arena-strategist-stroke);
+  --color-arena-operator-stroke: var(--arena-operator-stroke);
+  --color-arena-founder-stroke: var(--arena-founder-stroke);
+  --color-arena-text: var(--arena-text);
 }
 
 /* FOUNDR dark theme — always on, no light/dark toggle */
@@ -94,6 +104,17 @@
   --agent-skeptic: #ef4444;
   --agent-strategist: #3b82f6;
   --agent-operator: #22c55e;
+
+  /* War Room arena tokens — must match inspo.html exactly */
+  --war-room-bg: #0f0e0c;
+  --arena-fill: #241f19;
+  --arena-stroke: #322b24;
+  --arena-inner-stroke: #3a332b;
+  --arena-skeptic-stroke: #c2692a;
+  --arena-strategist-stroke: #5a7db0;
+  --arena-operator-stroke: #4a7c59;
+  --arena-founder-stroke: #a8987f;
+  --arena-text: #ede9e0;
 }
 
 @layer base {

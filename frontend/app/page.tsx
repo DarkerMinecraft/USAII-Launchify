@@ -37,7 +37,7 @@ export default function Home() {
       </Link>
 
       {/* Feature trio */}
-      <div className="grid grid-cols-3 gap-4 mt-16 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 w-full">
         {[
           {
             icon: Swords,

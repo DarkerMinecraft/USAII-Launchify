@@ -342,11 +342,21 @@ The AI never tells the founder whether their idea is worth pursuing. Two explici
 
 ## UI/UX Direction
 
-**Visual reference:** `frontend/inspo.html` is the primary design inspiration for the War Room. Open it in a browser. Key elements to match:
+**Visual reference:** `frontend/inspo.html` is the primary design inspiration for the War Room. Open it in a browser. **The War Room session UI (Phases 6–7) MUST visually match inspo.html — not approximate it. If in doubt, open inspo.html and compare side-by-side.**
+
+Key elements that must be replicated precisely:
 - **Arena layout** — the three agents are positioned spatially around a central oval "debate floor" (Skeptic top, Strategist left, Operator right, Founder at bottom). This is not a linear chat layout — it reads as a room.
-- **Warm dark background** (`#0f0e0c` in the inspo, `#0a0a0f` in our system) with a slightly warmer-toned arena surface
+- **Warm session background**: The inspo uses `#0f0e0c` (warm brownish black) as the War Room session page background — warmer/browner than the app-wide `#0a0a0f`. Use `var(--war-room-bg)` on the session page.
+- **Arena ellipse**: Outer ellipse fill `#241f19` / stroke `#322b24`. Inner guide ellipse (no fill) stroke `#3a332b`. These are `var(--arena-fill)` / `var(--arena-stroke)` / `var(--arena-inner-stroke)` in globals.css.
+- **Agent circles**: Circular stroke rings, no avatars. Use the arena stroke colors — NOT the app-wide accent colors — for the circle rings in the arena layout:
+  - Skeptic ring: `var(--arena-skeptic-stroke)` `#c2692a` (warm orange, not `#ef4444`)
+  - Strategist ring: `var(--arena-strategist-stroke)` `#5a7db0` (muted blue)
+  - Operator ring: `var(--arena-operator-stroke)` `#4a7c59` (muted green)
+  - Founder ring: `var(--arena-founder-stroke)` `#a8987f` (warm tan)
+  - Fill: `rgba(color, 0.15–0.20)` tint inside each ring
+- **Agent accent colors vs. arena stroke colors**: The app-wide accent colors (`#ef4444`, `#3b82f6`, `#22c55e`) are used for text labels, message borders, and node status colors throughout the app. The arena stroke colors above are only for the spatial circle nodes in the arena layout.
+- **"War Room" typography**: Georgia-style serif italic, color `#ede9e0` (`var(--arena-text)`), centered over the oval. Use `font-serif italic` from the Playfair Display variable.
 - **Serif italic "War Room" typography** for the session header — gives it a gravitas/editorial feel distinct from the rest of the app's sans-serif UI
-- **Agent nodes as circles** with accent-colored strokes and subtle fill tints — not avatars or chips
 
 The debate transcript (chat view during rounds) transitions into the arena/map view after Round 3 completes.
 
@@ -398,17 +408,17 @@ frontend/
 │       │   └── assumptions/route.ts    # Generate assumption map
 │       └── auth/
 │           └── sync/route.ts
-├── src/
-│   ├── lib/
-│   │   └── gemini.ts                   # All Gemini API calls
-│   ├── components/
-│   │   ├── war-room/
-│   │   │   ├── Questionnaire.tsx
-│   │   │   ├── DebateTranscript.tsx
-│   │   │   └── AssumptionMap.tsx       # React Flow node graph
-│   │   └── ui/                         # shadcn components
-│   └── prompts/
-│       └── agents.ts                   # All system prompts as named constants
+├── lib/
+│   └── gemini.ts                       # All Gemini API calls
+├── components/
+│   ├── war-room/
+│   │   ├── Questionnaire.tsx
+│   │   ├── DebateTranscript.tsx
+│   │   └── AssumptionMap.tsx           # React Flow node graph
+│   ├── Sidebar.tsx
+│   └── ui/                             # shadcn components
+└── prompts/
+    └── agents.ts                       # All system prompts as named constants
 
 backend/
 ├── src/
@@ -550,6 +560,9 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [ ] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
 - [ ] Wire submit: `POST /v1/sessions` to persist, route to `/war-room/session/[id]`
 
+### ⚠️ Before Phase 6 — Open inspo.html in a browser
+The War Room session UI **must** match `frontend/inspo.html` visually. Read the "Visual reference" section in UI/UX Direction above for the exact color tokens and layout constraints. Do not approximate — compare side-by-side. All arena-specific CSS variables are already in `globals.css`.
+
 ### Phase 6 — War Room: The Debate
 - [ ] Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal
 - [ ] Build orchestration hook: Round 1 (×3 agents) → Round 2 (×3, full R1 transcript) → Round 3 synthesis, each gated by loading state
@@ -579,6 +592,8 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - [ ] Phase 6
 - [ ] Phase 7
 - [ ] Phase 8
+
+> **Next task:** Phase 4, Step 1 — write `frontend/prompts/agents.ts` (all system prompts as named constants), then `frontend/lib/gemini.ts`, then the three API routes.
 
 ---
 
@@ -629,6 +644,14 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 - Created shell pages for `app/war-room/page.tsx` and `app/war-room/session/[id]/page.tsx` — the session page uses `await params` (Next.js 16 breaking change).
 - `tsc --noEmit` passes clean.
 - **Gotcha:** `mkdir -p` with a literal `[id]` in the path fails in zsh due to glob expansion — must quote the path.
+
+### 2026-06-18 — Code review fixes (post-Phase 3)
+
+- **Backend:** Added `claim` and `explanation` string validation to `PATCH /v1/sessions` assumption loop — previously only enum fields were checked; a malformed client could send empty strings and trigger a Prisma error instead of a clean 400.
+- **Sidebar:** Removed `pointer-events-none` from locked pillar links — placeholder pages exist and should be reachable. Visual lock state (opacity-50 + lock icon) is sufficient.
+- **Responsive grids:** Changed `grid-cols-3` to `grid-cols-1 sm:grid-cols-3` in `app/page.tsx` and `app/launchpad/page.tsx` — hardcoded 3-col grid was unreadable on narrow viewports.
+- **Layout:** Added `overflow-x-auto` to `<body>` and `min-w-0` to `<main>` — prevents sidebar squeezing main content into zero width on narrow screens; falls back to horizontal scroll.
+- **Turbopack root:** Set `turbopack: { root: __dirname }` in `next.config.ts` — stops Turbopack from walking up to the parent `package-lock.json` at `/Users/ericwei/USAII/` and inferring the wrong workspace root.
 
 ### 2026-06-17 — Sessions router hardening (post-review)
 
