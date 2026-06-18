@@ -459,6 +459,40 @@ backend/
 **Why it matters:**
 Without the gitignore fix, `.env.example` would never reach the repo and teammates (Ben) would have no reference for what env vars are required. The alias check is critical because every component import going forward depends on `@/` resolving correctly.
 
+### 2026-06-17 — Phase 1: Prisma schema + backend compilation fixes
+
+**What changed:**
+- Added `WarRoomSession`, `DebateMessage`, `AssumptionNode` models and `SessionStatus`, `AgentRole`, `NodeStatus` enums to `backend/prisma/schema.prisma`; added `sessions` back-relation to `User`
+- Prisma 7 no longer accepts `url = env("DATABASE_URL")` in the schema — that's now exclusively in `prisma.config.ts` (which was already correctly configured). Removed the line that would have broken `prisma generate`.
+- Fixed `backend/src/lib/prisma.ts`: Prisma 7 requires `new PrismaClient({ adapter })` — the no-arg call is a compile error. Added `PrismaPg` adapter wired to `DATABASE_URL`.
+- Fixed `.github/workflows/deploy.yaml`: `pm2 start index.js` pointed at a non-existent file (build output is `dist/`). Changed to `pm2 start npm -- start` (matches the `package.json` start script, same pattern as frontend).
+- Added `prisma migrate deploy` to deploy workflow so pending migrations auto-run on production deploys. Added explicit `--config prisma.config.ts` flag to both prisma commands.
+
+**Why it matters:**
+Without the adapter fix, `npm run build` fails — the backend can't be deployed at all. Without the PM2 fix, first-time or recovered deploys silently start nothing. Without `migrate deploy` in the workflow, schema changes never reach the production DB even after migration files exist.
+
+**Still pending — needs DB access:**
+`prisma migrate dev --name war_room_models` must be run once to create the migration files for the new models. Until then, the new tables don't exist in any environment. Run from `backend/` with a valid `DATABASE_URL` in `.env`.
+
+---
+
+### 2026-06-17 — Backend: Four pre-existing bugs fixed in index.ts and sync.ts
+
+**What changed:**
+- Removed the duplicate unrestricted `cors()` call in `index.ts`; the configured allowlist now actually enforces origins. Added `http://localhost:3000` to the allowlist so local dev isn't blocked.
+- Applied `checkJwt` to the `/v1/auth` router mount — it was defined but never used, so `req.auth` was always `undefined` and the sync route always returned 401 even with a valid token.
+- Moved the error handler to after the routes — Express only catches errors from routes registered before the handler, so JWT errors were silently falling through to Express's default handler.
+- Added a `return` to the `UnauthorizedError` branch in the error handler (it was missing, causing fall-through to the next `if`).
+- Guarded `payload.email` in `sync.ts` — Auth0 access tokens don't include email by default. Since `User.email` is required and unique in Prisma, an undefined email would throw at the DB layer with a cryptic error. Now returns a clear 400 with instructions.
+
+**Why it matters:**
+The auth sync route is the first thing the frontend calls on login. All four bugs meant auth was completely broken in the existing backend — a valid token would always 401. These fixes are prerequisites for any frontend work that touches authenticated state.
+
+**Auth0 gotcha to carry forward:**
+The access token only has `sub` by default. To get `email`, `name`, and `picture` in the token payload, add a custom Auth0 Action in the Login flow that sets `event.accessToken.setCustomClaim('email', event.user.email)` etc.
+
+---
+
 **Next.js 16 gotchas to carry forward — affects every dynamic route and route handler we write:**
 - `params` in pages and route handlers are now **Promises** — always `await` them: `const { id } = await props.params`
 - `cookies()` and `headers()` in route handlers are async-only — `const h = await headers()`

@@ -3,23 +3,71 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
-// prisma/schema.prisma
 datasource db {
   provider = "postgresql"
 }
 
-
 model User {
-  id          String   @id @default(cuid())
+  id        String           @id @default(cuid())
+  auth0Id   String           @unique
+  email     String           @unique
+  name      String?
+  picture   String?
+  provider  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  sessions  WarRoomSession[]
+}
 
-  auth0Id     String   @unique
+model WarRoomSession {
+  id                     String           @id @default(cuid())
+  userId                 String
+  user                   User             @relation(fields: [userId], references: [id])
+  ideaSummary            String
+  questionnaireResponses Json
+  canvas                 Json?
+  status                 SessionStatus    @default(IN_PROGRESS)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  transcript             DebateMessage[]
+  assumptions            AssumptionNode[]
+}
 
-  email       String   @unique
-  name        String?
-  picture     String?
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETE
+}
 
-  provider    String?
+model DebateMessage {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   WarRoomSession @relation(fields: [sessionId], references: [id])
+  agent     AgentRole
+  round     Int
+  content   String
+  createdAt DateTime       @default(now())
+}
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum AgentRole {
+  SKEPTIC
+  STRATEGIST
+  OPERATOR
+}
+
+model AssumptionNode {
+  id          String         @id @default(cuid())
+  sessionId   String
+  session     WarRoomSession @relation(fields: [sessionId], references: [id])
+  claim       String
+  status      NodeStatus
+  explanation String
+  agentSource AgentRole
+  remediation Json?
+  createdAt   DateTime       @default(now())
+}
+
+enum NodeStatus {
+  VALIDATED
+  UNVALIDATED
+  NEEDS_INFO
 }
