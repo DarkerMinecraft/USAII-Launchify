@@ -503,6 +503,85 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 
 ---
 
+## Project Phases
+
+> These phases are sequential. Within a phase, some steps can parallelize.
+> Scope: War Room feature only. Launchpad and Pitch Coach are placeholder shells until Phase 8.
+
+### Phase 0 — Groundwork & Verification
+- [x] Read Next 16 App Router changes, fix `tsconfig.json` path aliases
+- [x] Move `frontend/ui/button.tsx` → `frontend/components/ui/button.tsx`
+- [x] Create `frontend/.env.local` (`GEMINI_API_KEY`, `NEXT_PUBLIC_BACKEND_URL`)
+- [x] Create `backend/.env` (`DATABASE_URL`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`)
+- [x] Add `.env.example` for both, confirm both are gitignored
+
+### Phase 1 — Database / Prisma
+- [x] Add `url = env("DATABASE_URL")` to datasource block in `schema.prisma`
+- [x] Add `WarRoomSession`, `DebateMessage`, `AssumptionNode` models + enums (`SessionStatus`, `AgentRole`, `NodeStatus`)
+- [x] Add `sessions WarRoomSession[]` back-relation to `User`
+- [ ] Run `prisma generate` + `prisma migrate dev --name war_room_models` *(generate done; migrate pending live DB)*
+
+### Phase 2 — Backend Scaffolding (Express)
+- [x] Fix broken error handler in `backend/src/index.ts`, move it after routes
+- [x] Apply `checkJwt` to `/v1/auth` and `/v1/sessions`
+- [x] Create session router skeleton in `backend/src/v1/sessions/index.ts`, mount it
+- [x] Add `requireUser` helper (resolve local `User` from `req.auth.payload.sub`)
+- [x] Implement `POST /v1/sessions` — create session, return id
+- [x] Implement `GET /v1/sessions/:id` — return session + transcript + assumptions, owner-checked
+- [x] Implement `PATCH /v1/sessions/:id` — persist canvas, status, bulk-write messages/nodes
+- [ ] Smoke test all endpoints with a token before touching frontend *(pending live DB)*
+
+### Phase 3 — Frontend Shell (no AI yet)
+- [x] Install deps: `@xyflow/react`, `framer-motion`, `@google/genai`, shadcn primitives
+- [x] Apply design tokens (bg `#0a0a0f`, surface, border, agent accents) to `globals.css` + Tailwind theme
+- [x] Build app layout: narrow left sidebar + wide main panel in `app/layout.tsx`
+- [x] Build `app/page.tsx` landing/onboarding
+- [x] Create placeholder pages: `app/launchpad/page.tsx`, `app/pitch-coach/page.tsx`
+- [x] Create empty route files: `app/war-room/page.tsx`, `app/war-room/session/[id]/page.tsx`
+
+### Phase 4 — Gemini Service & Prompts
+- [ ] Write `frontend/prompts/agents.ts` — all system prompts as named constants (SKEPTIC, STRATEGIST, OPERATOR; question-gen; round 2/3; assumption-map JSON). No inline prompts anywhere else.
+- [ ] Write `frontend/lib/gemini.ts` — typed `callGemini(prompt, context)` + JSON-parsing helper, non-streaming
+- [ ] Build + test `app/api/war-room/questions/route.ts`
+- [ ] Build + test `app/api/war-room/debate/route.ts`
+- [ ] Build + test `app/api/war-room/assumptions/route.ts`
+
+### Phase 5 — War Room: Idea Intake
+- [ ] Build `components/war-room/Questionnaire.tsx` — one-liner → 3 AI questions + 5 defaults = 8 question form
+- [ ] Wire submit: `POST /v1/sessions` to persist, route to `/war-room/session/[id]`
+
+### Phase 6 — War Room: The Debate
+- [ ] Build `components/war-room/DebateTranscript.tsx` — agent avatars, accent borders, typing indicators, Framer Motion reveal
+- [ ] Build orchestration hook: Round 1 (×3 agents) → Round 2 (×3, full R1 transcript) → Round 3 synthesis, each gated by loading state
+- [ ] Persist transcript via `PATCH /v1/sessions/:id` as rounds complete
+
+### Phase 7 — War Room: Assumption Map
+- [ ] Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, sized by risk, network layout
+- [ ] Build node side-panel: claim + explanation + agent reasoning + validate/modify/remove form
+- [ ] Wire remediation: update node status on canvas, `PATCH` canvas JSON
+- [ ] Add Responsible AI disclaimer banner + "→ Launchpad" CTA
+
+### Phase 8 — Polish & Ship
+- [ ] End-to-end pass: intake → debate → map → remediate → canvas persisted
+- [ ] Verify: no raw JSON shown, every AI call has loading state, no localStorage/sessionStorage used
+- [ ] Confirm GitHub Actions smart-deploy picks up frontend + backend changes
+- [ ] Deploy to `usaii.darkermine.dev`, run full demo flow on server
+
+## Current Status
+> Update this after each phase completes.
+
+- [x] Phase 0
+- [x] Phase 1 *(migration pending live DB)*
+- [x] Phase 2 *(smoke test pending live DB)*
+- [x] Phase 3
+- [ ] Phase 4
+- [ ] Phase 5
+- [ ] Phase 6
+- [ ] Phase 7
+- [ ] Phase 8
+
+---
+
 ## Change Log
 
 ### 2026-06-17 — Backend: Pre-existing bugs fixed
@@ -537,6 +616,19 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
   - `PATCH /v1/sessions/:id` — update canvas/status, append messages, replace assumptions; all in a transaction
 - Mounted under `/v1/sessions` with `checkJwt` in `index.ts`.
 - `tsc --noEmit` passes clean.
+
+### 2026-06-18 — Phase 3: Frontend Shell
+
+- Established the FOUNDR dark palette as the only theme — removed light mode entirely; `:root` always carries the dark tokens (`#0a0a0f` bg, `#111118` surface, `#2a2a35` border). Agent accent colors (`--agent-skeptic/strategist/operator`) exposed as Tailwind utilities via `@theme inline`.
+- Added `Playfair Display` (normal + italic) as `--font-serif` for the War Room session header; Geist Sans remains the primary UI font.
+- Installed `@xyflow/react`, `framer-motion`, `@google/genai` — all required for Phases 4–7.
+- Built `app/layout.tsx` with full-height sidebar + scrollable main panel side-by-side. Sidebar is always visible on all routes (per product decision).
+- Built `components/Sidebar.tsx` (Client Component): FOUNDR logo, three-pillar nav with active-path detection via `usePathname()`, lock badges on Launchpad and Pitch Coach, empty-state idea summary card at bottom.
+- Rewrote `app/page.tsx` as the FOUNDR hero inside the main panel: headline, agent intro trio with accent colors, "Enter the War Room →" CTA, responsible AI footnote.
+- Created placeholder pages for `app/launchpad/page.tsx` and `app/pitch-coach/page.tsx` — locked states with feature descriptions; never 404.
+- Created shell pages for `app/war-room/page.tsx` and `app/war-room/session/[id]/page.tsx` — the session page uses `await params` (Next.js 16 breaking change).
+- `tsc --noEmit` passes clean.
+- **Gotcha:** `mkdir -p` with a literal `[id]` in the path fails in zsh due to glob expansion — must quote the path.
 
 ### 2026-06-17 — Sessions router hardening (post-review)
 
