@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 
 import syncRouter from "./v1/auth/sync";
+import sessionsRouter from "./v1/sessions";
 import { checkJwt } from "./middleware/auth";
 
 import {
@@ -22,6 +23,7 @@ app.use(
 app.use(express.json());
 
 app.use("/v1/auth", checkJwt, syncRouter);
+app.use("/v1/sessions", checkJwt, sessionsRouter);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof UnauthorizedError) {

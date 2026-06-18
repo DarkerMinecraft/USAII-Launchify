@@ -459,6 +459,25 @@ backend/
 **Why it matters:**
 Without the gitignore fix, `.env.example` would never reach the repo and teammates (Ben) would have no reference for what env vars are required. The alias check is critical because every component import going forward depends on `@/` resolving correctly.
 
+### 2026-06-17 — Phase 2: Express sessions scaffolding
+
+**What changed:**
+- Created `backend/src/middleware/requireUser.ts` — resolves the local `User` row from `req.auth.payload.sub`. Returns `null` and sends the appropriate response if the sub is missing or the user hasn't synced yet. All session routes call this instead of manually querying auth state.
+- Created `backend/src/v1/sessions/index.ts` with three endpoints:
+  - `POST /v1/sessions` — creates a `WarRoomSession` from `ideaSummary` + `questionnaireResponses`, returns the session id
+  - `GET /v1/sessions/:id` — returns the full session with `transcript` and `assumptions` ordered by `createdAt`; owner-checked
+  - `PATCH /v1/sessions/:id` — updates `canvas`, `status`, appends `messages` (DebateMessage rows), and/or bulk-creates `assumptions` (AssumptionNode rows) in a single transaction; owner-checked; returns the updated session
+- Mounted `sessionsRouter` in `index.ts` under `/v1/sessions` with `checkJwt`
+- `tsc --noEmit` passes clean
+
+**Why it matters:**
+The frontend's War Room flow depends on these three endpoints at every step: POST on questionnaire submit, PATCH after each debate round, PATCH again after assumption remediation. Getting them right now means the frontend phase has a stable API contract to code against.
+
+**PATCH design note:**
+All four fields (`canvas`, `status`, `messages`, `assumptions`) are optional. The frontend sends only what changed. Messages are always appended (never replaced). Assumptions are bulk-created after round 3; remediation updates go via canvas PATCH (the canvas JSON is the source of truth for assumption state displayed to the user).
+
+---
+
 ### 2026-06-17 — Phase 1: Prisma schema + backend compilation fixes
 
 **What changed:**
