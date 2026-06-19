@@ -14,9 +14,16 @@ router.get("/sync", async (req, res) => {
 
   const auth0Id = payload.sub;
 
-  const email = payload.email as string;
-  const name = payload.name as string;
-  const picture = payload.picture as string;
+  const email = payload.email as string | undefined;
+  if (!email) {
+    return res.status(400).json({
+      error: "missing_email",
+      message: "Auth0 token does not include an email claim. Add email as a custom claim in your Auth0 Action.",
+    });
+  }
+
+  const name = payload.name as string | undefined;
+  const picture = payload.picture as string | undefined;
 
   const provider = auth0Id.startsWith("google-oauth2") ? "google" : "auth0";
 
