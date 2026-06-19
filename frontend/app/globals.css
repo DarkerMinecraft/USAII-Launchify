@@ -195,3 +195,9 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
+
+/* War Room — active-speaker ring pulse around the arena node */
+@keyframes arenaGlow {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
