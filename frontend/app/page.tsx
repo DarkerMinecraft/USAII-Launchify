@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Swords, Target, Lightbulb } from "lucide-react";
+import { ArrowRight, Swords, Target, Lightbulb, Mic } from "lucide-react";
 
-const agents = [
+const features = [
   {
     icon: Swords,
     role: "CHALLENGES",
@@ -26,24 +26,26 @@ const agents = [
     accentBase: "#4a7c59",
     accentText: "#6fa37e",
   },
+  {
+    icon: Mic,
+    role: "COACHES",
+    label: "Pitch Coach",
+    desc: "Real-time delivery feedback on your voice, camera, and slides — practice your pitch before the room that matters.",
+    accentBase: "#5a3f8a",
+    accentText: "#9b7fd4",
+  },
 ];
 
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-8 py-16 max-w-2xl mx-auto">
-      {/* Mono eyebrow */}
       <div
         className="font-mono uppercase mb-10"
-        style={{
-          fontSize: "9.5px",
-          letterSpacing: "0.18em",
-          color: "#5a574f",
-        }}
+        style={{ fontSize: "9.5px", letterSpacing: "0.18em", color: "#5a574f" }}
       >
         AI Hackathon 2026 &mdash; Challenge Brief 3
       </div>
 
-      {/* Headline — Spectral italic for the main phrase */}
       <h1
         className="text-center mb-6"
         style={{ lineHeight: "1.08", letterSpacing: "-0.01em" }}
@@ -62,7 +64,6 @@ export default function Home() {
         </span>
       </h1>
 
-      {/* Sub-description */}
       <p
         className="text-center leading-relaxed mb-10 max-w-md"
         style={{ fontSize: "15px", color: "#9a958c" }}
@@ -72,49 +73,57 @@ export default function Home() {
         with it.
       </p>
 
-      {/* Primary CTA */}
-      <Link
-        href="/war-room"
-        className="inline-flex items-center gap-2.5 font-semibold group transition-colors"
-        style={{
-          background: "#ede9e0",
-          color: "#131210",
-          borderRadius: "9px",
-          padding: "12px 22px",
-          fontSize: "14.5px",
-        }}
-      >
-        <Swords className="w-4 h-4" />
-        Enter the War Room
-        <ArrowRight
-          className="w-4 h-4 group-hover:translate-x-0.5 transition-transform"
-        />
-      </Link>
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        <Link
+          href="/war-room"
+          className="inline-flex items-center gap-2.5 font-semibold group transition-colors"
+          style={{
+            background: "#ede9e0",
+            color: "#131210",
+            borderRadius: "9px",
+            padding: "12px 22px",
+            fontSize: "14.5px",
+          }}
+        >
+          <Swords className="w-4 h-4" />
+          Enter the War Room
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+        <Link
+          href="/pitch-session"
+          className="inline-flex items-center gap-2.5 font-semibold group transition-colors"
+          style={{
+            background: "transparent",
+            color: "#9b7fd4",
+            border: "1px solid rgba(90, 63, 138, 0.4)",
+            borderRadius: "9px",
+            padding: "12px 22px",
+            fontSize: "14.5px",
+          }}
+        >
+          <Mic className="w-4 h-4" />
+          Pitch Coach
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      </div>
 
-      {/* Agent feature trio */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16 w-full">
-        {agents.map(({ icon: Icon, role, label, desc, accentBase, accentText }) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-16 w-full">
+        {features.map(({ icon: Icon, role, label, desc, accentBase, accentText }) => (
           <div
             key={label}
-            className="flex flex-col gap-3 rounded-[13px] transition-all"
+            className="flex flex-col gap-3 rounded-[13px]"
             style={{
               padding: "18px 20px",
               background: `rgba(${hexToRgb(accentBase)}, 0.06)`,
               border: `1px solid rgba(${hexToRgb(accentBase)}, 0.28)`,
             }}
           >
-            {/* Mono role verb */}
             <div
               className="font-mono uppercase"
-              style={{
-                fontSize: "9px",
-                letterSpacing: "0.16em",
-                color: accentText,
-              }}
+              style={{ fontSize: "9px", letterSpacing: "0.16em", color: accentText }}
             >
               {role}
             </div>
-
             <div className="flex items-center gap-2">
               <Icon className="w-4 h-4 shrink-0" style={{ color: accentText }} />
               <p
@@ -124,7 +133,6 @@ export default function Home() {
                 {label}
               </p>
             </div>
-
             <p
               className="leading-relaxed"
               style={{ fontSize: "12.5px", color: "#7a7670" }}
@@ -135,14 +143,9 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Responsible AI footnote */}
       <p
         className="font-mono text-center mt-12 max-w-md leading-relaxed uppercase"
-        style={{
-          fontSize: "8.5px",
-          letterSpacing: "0.1em",
-          color: "#5a574f",
-        }}
+        style={{ fontSize: "8.5px", letterSpacing: "0.1em", color: "#5a574f" }}
       >
         FOUNDR surfaces information. The founder decides what to do with it.
         This analysis does not replace talking to real customers.
