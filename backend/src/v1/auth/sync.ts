@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 
 const router = Router();
@@ -30,18 +31,22 @@ router.get("/sync", async (req, res) => {
   try {
     const user = await prisma.user.upsert({
       where: { auth0Id },
-      update: { email, name, picture },
+      update: { name, picture },
       create: { auth0Id, email, name, picture, provider },
     });
+
     return res.json(user);
-  } catch (e: unknown) {
-    const err = e as { code?: string; message?: string; meta?: unknown };
-    console.error("[sync] Prisma error:", err.code, err.message, err.meta);
-    return res.status(500).json({
-      error: "db_error",
-      code: err.code,
-      message: err.message,
-    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("[sync] Prisma error:", err.code, err.meta, err.message);
+      return res.status(500).json({
+        error: "db_error",
+        code: err.code,
+        meta: err.meta,
+        message: err.message,
+      });
+    }
+    throw err;
   }
 });
 
