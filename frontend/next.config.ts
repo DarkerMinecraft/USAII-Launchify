@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     ];
     return config;
   },
+  // next.config.js
+  allowedDevOrigins: ["launchify.darkermine.dev"],
 };
 
 export default nextConfig;
