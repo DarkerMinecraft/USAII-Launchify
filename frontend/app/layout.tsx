@@ -3,7 +3,7 @@ import { Spectral, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Auth0Provider } from "@auth0/nextjs-auth0";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/sidebar";
 
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-sans",
@@ -25,18 +25,19 @@ const spectral = Spectral({
 });
 
 export const metadata: Metadata = {
-  title: "FOUNDR — AI Startup Co-Pilot",
+  title: "Launchify — AI Startup Co-Pilot",
   description: "Stress-test your startup idea with AI agents before the market does.",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>) => {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full antialiased",
         hankenGrotesk.variable,
@@ -52,4 +53,5 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+};
+export default RootLayout;

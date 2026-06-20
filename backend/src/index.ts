@@ -1,6 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 import syncRouter from "./v1/auth/sync";
 import sessionsRouter from "./v1/sessions";
 import { checkJwt } from "./middleware/auth";
@@ -15,7 +18,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["https://usaii.darkermine.dev", "http://localhost:3000"],
+    origin: ["https://launchify.darkermine.dev", "http://localhost:3000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
   }),
@@ -51,9 +54,10 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  next(err);
+  console.error("[error]", err instanceof Error ? err.message : err);
+  return res.status(500).json({ error: "internal_server_error" });
 });
 
 app.listen(3001, () => {
-  console.log(`🚀 Server running on port 3001`);
+  console.log("🚀 Server running on port 3001");
 });

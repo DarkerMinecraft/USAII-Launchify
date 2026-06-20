@@ -9,14 +9,12 @@ import { auth0 } from "@/lib/auth0";
 // /auth/profile) and keeps the session rolling. For non-auth routes it just
 // refreshes the session cookie and passes through. `auth0.middleware` is the
 // SDK method name (unchanged by Next's rename).
-export async function proxy(request: NextRequest) {
-  return await auth0.middleware(request);
-}
+export const proxy = async (request: NextRequest) => auth0.middleware(request);
 
 export const config = {
   matcher: [
     // Run on everything except Next internals, static assets, and the public
     // LLM routes (/api/war-room/* are unauthenticated by design).
-    "/((?!_next/static|_next/image|favicon.ico|api/war-room|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/war-room|api/launchpad|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

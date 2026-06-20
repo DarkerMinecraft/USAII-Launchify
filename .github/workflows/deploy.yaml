@@ -76,7 +76,9 @@ jobs:
             git rev-parse HEAD
 
             echo "Pulling latest changes..."
-            git pull origin master
+            git remote prune origin
+            git fetch origin master
+            git reset --hard origin/master
 
             echo "Git status AFTER pull:"
             git rev-parse HEAD
@@ -91,7 +93,7 @@ jobs:
             pm2 list || true
 
             echo "Restarting frontend..."
-            pm2 restart frontend || pm2 start npm --name frontend -- start
+            pm2 startOrRestart ~/USAII/ecosystem.config.cjs --only frontend
 
             echo "===== FRONTEND DEPLOY DONE ====="
 
@@ -126,21 +128,23 @@ jobs:
             git rev-parse HEAD
 
             echo "Pulling latest changes..."
-            git pull origin master
+            git remote prune origin
+            git fetch origin master
+            git reset --hard origin/master
 
             echo "Git status AFTER pull:"
             git rev-parse HEAD
 
             echo "Installing dependencies..."
             npm install
-            npx prisma generate --config prisma.config.ts
-            npx prisma migrate deploy --config prisma.config.ts
+            npx prisma db push --accept-data-loss
+            npx prisma generate
             npm run build
 
             echo "PM2 status:"
             pm2 list || true
 
             echo "Restarting backend..."
-            pm2 restart backend || pm2 start npm --name backend -- start
+            pm2 startOrRestart ~/USAII/ecosystem.config.cjs --only backend
 
             echo "===== BACKEND DEPLOY DONE ====="

@@ -4,7 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export class BackendAuthError extends Error {}
 export class BackendError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
     super(message);
   }
 }
@@ -17,18 +20,26 @@ export class BackendError extends Error {
  * Call from a Route Handler (cookies are writable there, so a refreshed token
  * is persisted) — not from a Server Component.
  */
-export async function forwardToBackend(
+export const forwardToBackend = async (
   path: string,
-  init?: RequestInit
-): Promise<Response> {
+  init?: RequestInit,
+): Promise<Response> => {
   if (!BACKEND_URL) {
     throw new BackendError("NEXT_PUBLIC_BACKEND_URL is not configured", 500);
   }
 
-  let token: string;
+  let token: string | undefined;
   try {
     ({ token } = await auth0.getAccessToken());
-  } catch {
+  } catch (err) {
+    console.error("[backend] getAccessToken() threw:", err);
+    throw new BackendAuthError("Not authenticated");
+  }
+
+  if (!token) {
+    console.error(
+      "[backend] getAccessToken() returned no token — check AUTH0_AUDIENCE in frontend .env.local",
+    );
     throw new BackendAuthError("Not authenticated");
   }
 
@@ -40,7 +51,7 @@ export async function forwardToBackend(
     },
     cache: "no-store",
   });
-}
+};
 
 /**
  * Idempotently upserts the local User row via GET /v1/auth/sync. requireUser on
@@ -48,13 +59,13 @@ export async function forwardToBackend(
  * this first — making the flow resilient regardless of login-callback timing.
  * The sync endpoint needs an `email` claim on the access token (Auth0 Action).
  */
-export async function ensureUserSynced(): Promise<void> {
+export const ensureUserSynced = async (): Promise<void> => {
   const res = await forwardToBackend("/v1/auth/sync", { method: "GET" });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new BackendError(
       `Account sync failed (${res.status}). ${detail}`.trim(),
-      res.status
+      res.status,
     );
   }
-}
+};

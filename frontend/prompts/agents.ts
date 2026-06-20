@@ -1,4 +1,4 @@
-import type { DebateMessage, QA } from "@/lib/types";
+import type { AssumptionNode, Canvas, DebateMessage, QA } from "@/lib/types";
 
 const UNANSWERED_TEXT = "(left blank — founder did not answer)";
 
@@ -71,7 +71,7 @@ Example: ["Question one?", "Question two?", "Question three?"]`;
 
 // ─── Round context builders ───────────────────────────────────────────────────
 
-function formatQA(questionnaire: QA[]): string {
+const formatQA = (questionnaire: QA[]): string => {
   return questionnaire
     .map((q, i) => {
       const rawAnswer = typeof q.answer === "string" ? q.answer : "";
@@ -81,13 +81,13 @@ function formatQA(questionnaire: QA[]): string {
     .join("\n\n");
 }
 
-function formatTranscript(transcript: DebateMessage[]): string {
+const formatTranscript = (transcript: DebateMessage[]): string => {
   return transcript
     .map((m) => `[${m.agent} — Round ${m.round}]\n${m.content}`)
     .join("\n\n---\n\n");
 }
 
-export function buildRound1Prompt(ideaSummary: string, questionnaire: QA[]): string {
+export const buildRound1Prompt = (ideaSummary: string, questionnaire: QA[]): string => {
   return `You are in Round 1 (Opening Statements) of a War Room debate.
 
 FOUNDER'S IDEA:
@@ -102,11 +102,11 @@ Give your opening statement. Surface 1–2 of the most important concerns or que
 // Callers may pass the entire running transcript; these builders slice out the
 // rounds each prompt should actually see, so context stays spec-correct
 // regardless of what the orchestration hook passes in.
-export function buildRound2Prompt(
+export const buildRound2Prompt = (
   ideaSummary: string,
   questionnaire: QA[],
   transcript: DebateMessage[]
-): string {
+): string => {
   const round1 = transcript.filter((m) => m.round === 1);
   return `You are in Round 2 (Responses) of a War Room debate.
 
@@ -122,11 +122,11 @@ ${formatTranscript(round1)}
 Respond to what the other advisors said in Round 1. Agree, push back, or add a new angle — but engage directly with their specific points. Genuine disagreement is expected. Do not simply repeat your Round 1 statement.`;
 }
 
-export function buildRound3Prompt(
+export const buildRound3Prompt = (
   ideaSummary: string,
   questionnaire: QA[],
   transcript: DebateMessage[]
-): string {
+): string => {
   // Closing statements reflect on the actual debate (Rounds 1–2), not on peers'
   // closings — so each agent's synthesis is independent.
   const debate = transcript.filter((m) => m.round < 3);
@@ -144,11 +144,127 @@ ${formatTranscript(debate)}
 Give your closing statement. Identify the 1–2 most critical unresolved questions or assumptions from the full debate that the founder needs to validate before moving forward. Be direct and specific.`;
 }
 
-export function buildAssumptionMapPrompt(
+// ─── Canvas formatters (shared by Launchpad prompts) ─────────────────────────
+
+const formatQAForCanvas = (responses: QA[]): string => {
+  return responses
+    .map((q, i) => {
+      const answer = typeof q.answer === "string" && q.answer.trim() ? q.answer : "(left blank)";
+      return `Q${i + 1}: ${q.question}\nA: ${answer}`;
+    })
+    .join("\n\n");
+}
+
+const formatAssumptionsForCanvas = (assumptions: AssumptionNode[]): string => {
+  return assumptions
+    .map((a) => {
+      const reviewedTag = a.remediation ? ` [REVIEWED BY FOUNDER: ${a.remediation.action}]` : "";
+      const testLine = a.howToTest ? `\n  → Suggested test: ${a.howToTest}` : "";
+      return `[${a.status}${reviewedTag}] ${a.claim} (${a.agentSource})${testLine}`;
+    })
+    .join("\n");
+}
+
+// ─── Launchpad: Customer Connect ─────────────────────────────────────────────
+
+export const OUTREACH_SYSTEM = `You are the Customer Connect agent for FOUNDR, an AI co-pilot for early-stage founders.
+
+Your job: given a founder's Idea Canvas, identify the ONE most critical unvalidated assumption that, if wrong, would kill the idea soonest. Then identify the exact, reachable type of person who can validate or invalidate it, and draft two outreach templates targeting that person.
+
+Rules:
+- Be specific to THIS idea — no generic startup language or placeholder text
+- The target profile must be a real, reachable person type (not "anyone in the industry")
+- Cold email: 150–250 words, conversational, asks for a 20-minute call, references the specific assumption
+- LinkedIn DM: 50–80 words, punchy, asks a direct question tied to the assumption
+- Do NOT fabricate statistics or make promises on the founder's behalf
+- End with 2–3 sentences of personalization guidance (what to research before sending)
+- Return a JSON object — no markdown, no explanation, raw JSON only`;
+
+export const buildOutreachPrompt = (canvas: Canvas): string => {
+  const riskAssumptions = canvas.assumptions.filter(
+    (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
+  );
+
+  return `FOUNDER'S IDEA: ${canvas.ideaSummary}
+
+QUESTIONNAIRE RESPONSES:
+${formatQAForCanvas(canvas.questionnaireResponses)}
+
+FULL ASSUMPTION MAP:
+${formatAssumptionsForCanvas(canvas.assumptions)}
+
+UNVALIDATED / NEEDS-INFO ASSUMPTIONS (highest risk, not yet reviewed by founder):
+${riskAssumptions.length > 0 ? riskAssumptions.map((a) => `- [${a.status}] ${a.claim}`).join("\n") : "(none remaining — all reviewed)"}
+
+Generate outreach targeting the person who can validate the most critical unvalidated assumption above.
+
+Return this JSON exactly:
+{
+  "targetAssumption": "the specific assumption you are targeting (one sentence)",
+  "targetProfile": "one sentence describing the exact type of person to reach",
+  "why": "one sentence explaining why this person can validate or invalidate the assumption",
+  "email": {
+    "subject": "...",
+    "body": "..."
+  },
+  "linkedin": "...",
+  "personalizationTips": "2–3 sentences on what to research and customize before sending"
+}`;
+}
+
+// ─── Launchpad: Executive Summary ────────────────────────────────────────────
+
+export const SUMMARY_SYSTEM = `You are the Executive Summary agent for FOUNDR, an AI co-pilot for early-stage founders.
+
+Your job: given a founder's Idea Canvas, synthesize a clear, honest one-page brief. This brief reflects only what the founder has told the system — it does not validate or endorse the idea.
+
+Rules:
+- Be specific to THIS founder's idea — no generic startup language
+- Surface key risks directly from the UNVALIDATED/NEEDS_INFO assumptions (do not soften them)
+- Validated signals must come only from what the founder has evidenced
+- Next steps must directly address the most critical unvalidated assumptions
+- Frame everything as information for decision-making, not as endorsement
+- Never say "this will succeed" or imply the idea is proven
+- Return a JSON object — no markdown, no explanation, raw JSON only`;
+
+export const buildSummaryPrompt = (canvas: Canvas): string => {
+  const unvalidated = canvas.assumptions.filter(
+    (a) => (a.status === "UNVALIDATED" || a.status === "NEEDS_INFO") && !a.remediation
+  );
+  const validated = canvas.assumptions.filter(
+    (a) => a.status === "VALIDATED" || a.remediation?.action === "VALIDATE"
+  );
+
+  return `FOUNDER'S IDEA: ${canvas.ideaSummary}
+
+QUESTIONNAIRE RESPONSES:
+${formatQAForCanvas(canvas.questionnaireResponses)}
+
+FULL ASSUMPTION MAP:
+${formatAssumptionsForCanvas(canvas.assumptions)}
+
+VALIDATED (${validated.length}): ${validated.map((a) => a.claim).join("; ") || "none"}
+UNVALIDATED / NEEDS INFO (${unvalidated.length}): ${unvalidated.map((a) => a.claim).join("; ") || "none"}
+
+Generate a structured executive summary.
+
+Return this JSON exactly:
+{
+  "headline": "one-sentence description of what this idea does and for whom",
+  "problem": "2–3 sentences on the specific problem being solved",
+  "solution": "2–3 sentences on the approach and why it is differentiated",
+  "targetCustomer": "1–2 sentences on the exact customer profile",
+  "keyRisks": ["2–4 specific risks drawn from UNVALIDATED/NEEDS_INFO assumptions — not softened"],
+  "validatedSignals": ["1–3 signals the founder has evidenced — if none, return empty array []"],
+  "nextSteps": ["3 specific actions the founder should take in the next 2 weeks to address the biggest unknowns"]
+}`;
+}
+
+export const buildAssumptionMapPrompt = (
   ideaSummary: string,
   questionnaire: QA[],
   fullTranscript: DebateMessage[]
-): string {
+): string => {
   return `Synthesize the War Room debate below into a structured Assumption Map.
 
 FOUNDER'S IDEA:
