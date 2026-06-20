@@ -9,4 +9,23 @@ export const auth0 = new Auth0Client({
     scope: process.env.AUTH0_SCOPE ?? "openid profile email",
     audience: process.env.AUTH0_AUDIENCE,
   },
+
+  // Strip the session cookie down to the bare minimum before it is encrypted
+  // and written. Without this the cookie balloons with the full user profile
+  // (identities, roles, permissions, raw_metadata, app_metadata…) plus the
+  // idToken which can be several KB on its own. We never use the idToken
+  // directly — only the accessToken via auth0.getAccessToken().
+  beforeSessionSaved: async (session) => ({
+    ...session,
+    user: {
+      sub: session.user.sub,
+      email: session.user.email,
+      name: session.user.name,
+      picture: session.user.picture,
+    },
+    tokenSet: {
+      ...session.tokenSet,
+      idToken: undefined,
+    },
+  }),
 });
