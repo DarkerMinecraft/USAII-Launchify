@@ -91,7 +91,7 @@ jobs:
             pm2 list || true
 
             echo "Restarting frontend..."
-            pm2 restart frontend || pm2 start npm --name frontend -- start
+            pm2 startOrRestart ~/USAII/ecosystem.config.cjs --only frontend
 
             echo "===== FRONTEND DEPLOY DONE ====="
 
@@ -140,6 +140,6 @@ jobs:
             pm2 list || true
 
             echo "Restarting backend..."
-            pm2 restart backend || pm2 start npm --name backend -- start
+            pm2 startOrRestart ~/USAII/ecosystem.config.cjs --only backend
 
             echo "===== BACKEND DEPLOY DONE ====="
