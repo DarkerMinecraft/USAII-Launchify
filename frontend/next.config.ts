@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  webpack(config) {
+    // Auth0 v4's DPoP utility uses a dynamic require() expression that
+    // webpack can't statically analyze — it's intentional (optional peer dep).
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /dpopUtils/ },
+    ];
+    return config;
+  },
 };
 
 export default nextConfig;

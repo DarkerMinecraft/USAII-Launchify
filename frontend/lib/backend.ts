@@ -25,10 +25,16 @@ export const forwardToBackend = async (
     throw new BackendError("NEXT_PUBLIC_BACKEND_URL is not configured", 500);
   }
 
-  let token: string;
+  let token: string | undefined;
   try {
     ({ token } = await auth0.getAccessToken());
-  } catch {
+  } catch (err) {
+    console.error("[backend] getAccessToken() threw:", err);
+    throw new BackendAuthError("Not authenticated");
+  }
+
+  if (!token) {
+    console.error("[backend] getAccessToken() returned no token — check AUTH0_AUDIENCE in frontend .env.local");
     throw new BackendAuthError("Not authenticated");
   }
 
