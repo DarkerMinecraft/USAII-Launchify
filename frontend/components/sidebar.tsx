@@ -53,6 +53,17 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [savedName, setSavedName] = useState<string | undefined>(undefined);
+
+  const resolvedName = (() => {
+    if (savedName) return savedName;
+    const n = user?.name ?? "";
+    const e = user?.email ?? "";
+    if (!n || n === e || n.includes("@")) {
+      return e.split("@")[0]?.split(/[._-]/)[0] || "You";
+    }
+    return n;
+  })();
 
   return (
     <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
@@ -130,7 +141,7 @@ export const Sidebar = () => {
           </div>
         ) : user ? (
           <>
-            <UserSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+            <UserSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} onSaved={setSavedName} />
             <Button
               variant="ghost"
               onClick={() => setSettingsOpen(true)}
@@ -138,7 +149,7 @@ export const Sidebar = () => {
             >
               <div className="flex-1 min-w-0">
                 <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
-                  {user.name ?? user.email ?? "Signed in"}
+                  {resolvedName}
                 </p>
                 <p className="eyebrow-sm truncate mt-0.5">
                   Signed in

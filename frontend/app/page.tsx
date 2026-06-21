@@ -37,8 +37,12 @@ const Home = async () => {
   const session = await auth0.getSession();
 
   if (session) {
-    const firstName =
-      ((session.user?.name as string | undefined) ?? "").split(" ")[0] || "there";
+    const rawName = (session.user?.name as string | undefined) ?? "";
+    const email = (session.user?.email as string | undefined) ?? "";
+    const nameIsEmail = rawName === email || rawName.includes("@");
+    const firstName = nameIsEmail
+      ? (email.split("@")[0]?.split(/[._-]/)[0] ?? "there") || "there"
+      : rawName.split(" ")[0] || "there";
 
     return (
       <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8 sm:py-14">

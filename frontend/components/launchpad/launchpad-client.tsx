@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -274,16 +274,16 @@ export const LaunchpadClient = () => {
 
         <div className="flex-1 min-w-0">
           <div className={activeTab !== "customer" ? "hidden" : ""}>
-            <CustomerConnectCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.outreachDraft} onGenerated={() => markGenerated("customer")} />
+            <CustomerConnectCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.outreachDraft} onGenerated={() => markGenerated("customer")} autoGenerate={!savedResults.outreachDraft} />
           </div>
           <div className={activeTab !== "summary" ? "hidden" : ""}>
-            <ExecutiveSummaryCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.executiveSummary} onGenerated={() => markGenerated("summary")} />
+            <ExecutiveSummaryCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.executiveSummary} onGenerated={() => markGenerated("summary")} autoGenerate={!savedResults.executiveSummary} />
           </div>
           <div className={activeTab !== "roadmap" ? "hidden" : ""}>
-            <ValidationRoadmapCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.validationRoadmap} onGenerated={() => markGenerated("roadmap")} />
+            <ValidationRoadmapCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.validationRoadmap} onGenerated={() => markGenerated("roadmap")} autoGenerate={!savedResults.validationRoadmap} />
           </div>
           <div className={activeTab !== "market" ? "hidden" : ""}>
-            <MarketResearchCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.marketResearch} onGenerated={() => markGenerated("market")} />
+            <MarketResearchCard canvas={canvas} sessionId={sessionId} initialResult={savedResults.marketResearch} onGenerated={() => markGenerated("market")} autoGenerate={!savedResults.marketResearch} />
           </div>
         </div>
       </div>
@@ -291,25 +291,35 @@ export const LaunchpadClient = () => {
   );
 };
 
-const CustomerConnectCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
+const CustomerConnectCard = ({ canvas, sessionId, initialResult, onGenerated, autoGenerate }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void; autoGenerate?: boolean }) => {
+  const [state, setState] = useState<"idle" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<OutreachResult | null>(initialResult ? initialResult as unknown as OutreachResult : null);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const autoStartedRef = useRef(false);
 
-  const generate = async () => {
-    setState("loading");
+  const generate = useCallback(() => {
     setError(null);
-    try {
-      const data = await generateOutreach(canvas);
-      setResult(data as unknown as OutreachResult);
-      setState("done");
-      onGenerated();
-      if (sessionId) void saveLaunchpadResult(sessionId, "outreachDraft", data).catch(() => {});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate outreach");
-      setState("error");
+    startTransition(async () => {
+      try {
+        const data = await generateOutreach(canvas);
+        setResult(data as unknown as OutreachResult);
+        setState("done");
+        onGenerated();
+        if (sessionId) try { await saveLaunchpadResult(sessionId, "outreachDraft", data); } catch {}
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not generate outreach");
+        setState("error");
+      }
+    });
+  }, [canvas, sessionId, onGenerated]);
+
+  useEffect(() => {
+    if (autoGenerate && !autoStartedRef.current && state === "idle") {
+      autoStartedRef.current = true;
+      generate();
     }
-  };
+  }, [autoGenerate, generate, state]);
 
   return (
     <ToolCard
@@ -319,6 +329,7 @@ const CustomerConnectCard = ({ canvas, sessionId, initialResult, onGenerated }: 
       description="The agent reads your assumption map and drafts personalized outreach targeting your most critical unvalidated assumption. You review and send — the AI never contacts anyone on your behalf."
       accentClass="text-agent-strategist"
       onGenerate={generate}
+      isPending={isPending}
       state={state}
       error={error}
     >
@@ -327,25 +338,35 @@ const CustomerConnectCard = ({ canvas, sessionId, initialResult, onGenerated }: 
   );
 };
 
-const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
+const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult, onGenerated, autoGenerate }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void; autoGenerate?: boolean }) => {
+  const [state, setState] = useState<"idle" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<SummaryResult | null>(initialResult ? initialResult as unknown as SummaryResult : null);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const autoStartedRef = useRef(false);
 
-  const generate = async () => {
-    setState("loading");
+  const generate = useCallback(() => {
     setError(null);
-    try {
-      const data = await generateSummary(canvas);
-      setResult(data as unknown as SummaryResult);
-      setState("done");
-      onGenerated();
-      if (sessionId) void saveLaunchpadResult(sessionId, "executiveSummary", data).catch(() => {});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate summary");
-      setState("error");
+    startTransition(async () => {
+      try {
+        const data = await generateSummary(canvas);
+        setResult(data as unknown as SummaryResult);
+        setState("done");
+        onGenerated();
+        if (sessionId) try { await saveLaunchpadResult(sessionId, "executiveSummary", data); } catch {}
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not generate summary");
+        setState("error");
+      }
+    });
+  }, [canvas, sessionId, onGenerated]);
+
+  useEffect(() => {
+    if (autoGenerate && !autoStartedRef.current && state === "idle") {
+      autoStartedRef.current = true;
+      generate();
     }
-  };
+  }, [autoGenerate, generate, state]);
 
   return (
     <ToolCard
@@ -355,6 +376,7 @@ const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult, onGenerated }:
       description="The agent synthesizes your War Room canvas into a clear, honest brief — surfacing your key risks directly from the assumption map, not softening them."
       accentClass="text-agent-operator"
       onGenerate={generate}
+      isPending={isPending}
       state={state}
       error={error}
     >
@@ -363,25 +385,35 @@ const ExecutiveSummaryCard = ({ canvas, sessionId, initialResult, onGenerated }:
   );
 };
 
-const ValidationRoadmapCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
+const ValidationRoadmapCard = ({ canvas, sessionId, initialResult, onGenerated, autoGenerate }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void; autoGenerate?: boolean }) => {
+  const [state, setState] = useState<"idle" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<ValidationRoadmapResult | null>(initialResult ? initialResult as unknown as ValidationRoadmapResult : null);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const autoStartedRef = useRef(false);
 
-  const generate = async () => {
-    setState("loading");
+  const generate = useCallback(() => {
     setError(null);
-    try {
-      const data = await generateValidationRoadmap(canvas);
-      setResult(data as unknown as ValidationRoadmapResult);
-      setState("done");
-      onGenerated();
-      if (sessionId) void saveLaunchpadResult(sessionId, "validationRoadmap", data).catch(() => {});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate the roadmap");
-      setState("error");
+    startTransition(async () => {
+      try {
+        const data = await generateValidationRoadmap(canvas);
+        setResult(data as unknown as ValidationRoadmapResult);
+        setState("done");
+        onGenerated();
+        if (sessionId) try { await saveLaunchpadResult(sessionId, "validationRoadmap", data); } catch {}
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not generate the roadmap");
+        setState("error");
+      }
+    });
+  }, [canvas, sessionId, onGenerated]);
+
+  useEffect(() => {
+    if (autoGenerate && !autoStartedRef.current && state === "idle") {
+      autoStartedRef.current = true;
+      generate();
     }
-  };
+  }, [autoGenerate, generate, state]);
 
   return (
     <ToolCard
@@ -391,6 +423,7 @@ const ValidationRoadmapCard = ({ canvas, sessionId, initialResult, onGenerated }
       description="The agent reads your assumption map and builds a prioritized testing plan — ordered by risk and testability. Tells you the cheapest first move and what a result actually means."
       accentClass="text-agent-skeptic"
       onGenerate={generate}
+      isPending={isPending}
       state={state}
       error={error}
     >
@@ -399,25 +432,35 @@ const ValidationRoadmapCard = ({ canvas, sessionId, initialResult, onGenerated }
   );
 };
 
-const MarketResearchCard = ({ canvas, sessionId, initialResult, onGenerated }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void }) => {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(initialResult ? "done" : "idle");
+const MarketResearchCard = ({ canvas, sessionId, initialResult, onGenerated, autoGenerate }: { canvas: Canvas; sessionId: string | null; initialResult: Record<string, unknown> | null; onGenerated: () => void; autoGenerate?: boolean }) => {
+  const [state, setState] = useState<"idle" | "done" | "error">(initialResult ? "done" : "idle");
   const [result, setResult] = useState<MarketResearchResult | null>(initialResult ? initialResult as unknown as MarketResearchResult : null);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const autoStartedRef = useRef(false);
 
-  const generate = async () => {
-    setState("loading");
+  const generate = useCallback(() => {
     setError(null);
-    try {
-      const data = await generateMarketResearch(canvas);
-      setResult(data as unknown as MarketResearchResult);
-      setState("done");
-      onGenerated();
-      if (sessionId) void saveLaunchpadResult(sessionId, "marketResearch", data).catch(() => {});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate market research");
-      setState("error");
+    startTransition(async () => {
+      try {
+        const data = await generateMarketResearch(canvas);
+        setResult(data as unknown as MarketResearchResult);
+        setState("done");
+        onGenerated();
+        if (sessionId) try { await saveLaunchpadResult(sessionId, "marketResearch", data); } catch {}
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not generate market research");
+        setState("error");
+      }
+    });
+  }, [canvas, sessionId, onGenerated]);
+
+  useEffect(() => {
+    if (autoGenerate && !autoStartedRef.current && state === "idle") {
+      autoStartedRef.current = true;
+      generate();
     }
-  };
+  }, [autoGenerate, generate, state]);
 
   return (
     <ToolCard
@@ -427,6 +470,7 @@ const MarketResearchCard = ({ canvas, sessionId, initialResult, onGenerated }: {
       description="The agent maps the competitive landscape from your idea canvas — who's already solving this, how they win, and where your opening is. Flags what you must verify before trusting the analysis."
       accentClass="text-text-muted"
       onGenerate={generate}
+      isPending={isPending}
       state={state}
       error={error}
     >
@@ -437,7 +481,7 @@ const MarketResearchCard = ({ canvas, sessionId, initialResult, onGenerated }: {
 
 const ToolCard = ({
   icon, title, subtitle, description, accentClass,
-  onGenerate, state, error, children,
+  onGenerate, isPending, state, error, children,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -445,7 +489,8 @@ const ToolCard = ({
   description: string;
   accentClass: string;
   onGenerate: () => void;
-  state: "idle" | "loading" | "done" | "error";
+  isPending: boolean;
+  state: "idle" | "done" | "error";
   error: string | null;
   children?: React.ReactNode;
 }) => (
@@ -464,18 +509,18 @@ const ToolCard = ({
     </div>
 
     <div className="px-5 sm:px-8 py-4 sm:py-5 border-b border-hairline">
-      {state === "idle" || state === "error" ? (
+      {isPending ? (
+        <div className="flex items-center gap-3">
+          <Loader2 className={cn("w-4 h-4 animate-spin", accentClass)} />
+          <span className="eyebrow text-muted-foreground">Reading your canvas…</span>
+        </div>
+      ) : state === "idle" || state === "error" ? (
         <Button
           onClick={onGenerate}
           className="gap-2 rounded-[8px] px-[18px] py-2 text-[13.5px]"
         >
           Generate
         </Button>
-      ) : state === "loading" ? (
-        <div className="flex items-center gap-3">
-          <Loader2 className={cn("w-4 h-4 animate-spin", accentClass)} />
-          <span className="eyebrow text-muted-foreground">Reading your canvas…</span>
-        </div>
       ) : (
         <Button
           onClick={onGenerate}
@@ -487,7 +532,7 @@ const ToolCard = ({
         </Button>
       )}
 
-      {state === "error" && error && (
+      {state === "error" && !isPending && error && (
         <Alert variant="destructive" className="mt-3 border-[rgba(194,105,42,0.4)] bg-[rgba(194,105,42,0.06)] text-agent-skeptic [&>svg]:text-agent-skeptic">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-text-muted text-[12.5px]">{error}</AlertDescription>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useTransition } from "react";
 import { ReactFlow, Background, type Node, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -133,7 +133,7 @@ interface Props {
 export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, questionnaire }: Props) => {
   const [assumptions, setAssumptions] = useState(initial);
   const [selected, setSelected] = useState<AssumptionNode | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [isSaving, startSave] = useTransition();
   const [saveError, setSaveError] = useState(false);
 
   const nodes = useMemo(() => computeNodes(assumptions), [assumptions]);
@@ -144,8 +144,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
     validated: assumptions.filter((a) => a.status === "VALIDATED").length,
   }), [assumptions]);
 
-  const patchCanvas = useCallback(async (updated: AssumptionNode[]) => {
-    setSaving(true);
+  const patchCanvas = useCallback((updated: AssumptionNode[]) => {
     setSaveError(false);
     const canvas: Canvas = {
       ideaSummary,
@@ -153,14 +152,14 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
       assumptions: updated,
       lastUpdated: new Date().toISOString(),
     };
-    try {
-      await updateSession(sessionId, { canvas, assumptions: updated });
-    } catch {
-      setSaveError(true);
-      toast.error("Could not save — changes may be lost.");
-    } finally {
-      setSaving(false);
-    }
+    startSave(async () => {
+      try {
+        await updateSession(sessionId, { canvas, assumptions: updated });
+      } catch {
+        setSaveError(true);
+        toast.error("Could not save — changes may be lost.");
+      }
+    });
   }, [sessionId, ideaSummary, questionnaire]);
 
   const handleRemediate = useCallback((
@@ -185,7 +184,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
             : a
         );
       }
-      void patchCanvas(updated);
+      patchCanvas(updated);
       return updated;
     });
     setSelected(null);
@@ -202,8 +201,8 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
           This analysis is based entirely on what you told us — it does not replace talking to real customers.
           The AI does not decide whether your idea is worth pursuing.
         </p>
-        {saving && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-text-faint" />}
-        {saveError && !saving && (
+        {isSaving && <Loader2 className="w-3 h-3 animate-spin shrink-0 text-text-faint" />}
+        {saveError && !isSaving && (
           <span className="font-mono uppercase shrink-0 text-agent-skeptic text-[8px] tracking-[0.1em]">
             Save failed
           </span>
