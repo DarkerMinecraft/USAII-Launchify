@@ -642,25 +642,25 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 
 ### Phase 6 — War Room: The Debate ✅ (code complete; live E2E gated on Auth0)
 > Per `.claude/PHASE_6_PLAN.md` the layout is the **arena roundtable** and the transcript UI + orchestration + persistence were consolidated into a single client component, `components/war-room/WarRoomArena.tsx` (no separate `DebateTranscript.tsx`).
-- [x] Arena UI — SVG roundtable matching `inspo.html` geometry exactly, active-speaker glow (`arenaGlow` keyframe), round stepper, speech-bubble transcript log + typing bubbles (Framer Motion reveal). *(Statements render in a chronological log beneath the arena rather than one ephemeral floating bubble — for demo readability; see `.claude/LOG.md`.)*
+- [x] Arena UI — SVG roundtable matching `inspo.html` geometry exactly, active-speaker glow (`arenaGlow` keyframe), and a dedicated right-side dialogue rail with independently scrolling speech bubbles + typing state. Messages are grouped beneath labeled round dividers; Rounds 1 and 2 end with a 10-second reading intermission and an optional “Continue now” control. The rail stacks below the table on narrower screens.
 - [x] Orchestration: Round 1 (×3) → Round 2 (×3) → Round 3 closings (×3) → assumptions synthesis (×1, `POST /api/war-room/assumptions`), each gated by its own loading state; full transcript-so-far passed to every call. State machine `loading→debating→synthesizing→ready` with load+resume from existing transcript and per-turn retry.
 - [x] Persist transcript via the BFF `PATCH /api/sessions/[id]` after each round (best-effort, idempotent); synthesis writes `canvas` + assumptions + `status:"COMPLETE"`.
 - [x] BFF `GET`/`PATCH` route `app/api/sessions/[id]/route.ts` (was already committed in `8f07e90`; verified correct).
 - ⚠️ Live browser E2E (sign in → session → 3 rounds → synthesis → DB rows) gated on the outstanding Auth0 dashboard items; public `/api/war-room/*` contract smoke-tested green against live Gemini.
 
 ### Phase 7 — War Room: Assumption Map
-- [ ] Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, sized by risk, network layout
-- [ ] Build node side-panel: claim + explanation + agent reasoning + validate/modify/remove form
-- [ ] Wire remediation: update node status on canvas, `PATCH` canvas JSON
+- [x] Build `components/war-room/assumption-map.tsx` — React Flow, color-coded by status, sized by risk, **interconnected-web network layout** (central "The Idea" hub + spokes + per-agent constellations; web redesign 2026-06-20, replacing the old status-column stack)
+- [x] Build node side-panel: claim + explanation + agent reasoning + validate/modify/remove form (`NodePanel`)
+- [x] Wire remediation: update node status on canvas, `PATCH` canvas JSON (`handleRemediate` → `patchCanvas` → `updateSession`)
 
 **Responsible AI — this is a scored category (10%); do NOT reduce it to one banner.** The brief requires a named risk + a concrete, *visible* mitigation + a legible human-in-the-loop. FOUNDR's safeguards are architectural (the AI never renders a verdict; the founder remediates every node) — Phase 7's job is to make them *visible and narratable for the demo/video*. Build all of the following:
 
-- [ ] **Uncertainty-first map (the core mitigation, not the banner).** Make UNVALIDATED / NEEDS_INFO nodes visually *louder* than VALIDATED — larger, higher-contrast, foregrounded. The map must never read as a "your idea is validated" trophy. Honest uncertainty is the safeguard; the visual hierarchy is how judges see it.
-- [ ] **Per-node honesty microcopy.** Each node's side-panel states the status was *AI-inferred from only what the founder told us* and prompts them to verify before trusting it. This is the false-confidence + hallucination guard at the point of risk — not just a page-level strip.
-- [ ] **Persistent results-screen disclaimer banner.** Always-visible: *"This analysis is based entirely on what you've told us. It does not replace talking to real customers."* Plus copy stating the AI does not decide whether the idea is worth pursuing.
-- [ ] **Make the human-in-the-loop legible on screen.** When the founder remediates a node, it visibly changes *because they acted* (status/color shift on their input, never auto-resolved by the AI). This is the on-camera proof of HITL for the pitch video — the user's decision moment must be obvious.
-- [ ] **Surface `howToTest` as the concrete next step.** Each unvalidated node shows its AI-suggested validation action prominently — this is Direction B's "first real step" and carries the "→ action" half of the pipeline while Launchpad is a placeholder.
-- [ ] Add the **"→ Launchpad" CTA** after the map.
+- [x] **Uncertainty-first map (the core mitigation, not the banner).** Make UNVALIDATED / NEEDS_INFO nodes visually *louder* than VALIDATED — larger, higher-contrast, foregrounded. *(STATUS_CFG sizes UNVALIDATED 224×114 > NEEDS_INFO 196×98 > VALIDATED 170×84; preserved through the web redesign.)*
+- [x] **Per-node honesty microcopy.** Each node's side-panel states the status was *AI-inferred from only what the founder told us* and prompts them to verify before trusting it. *(In `NodePanel`: "This status was AI-inferred from only what you told us. Verify before trusting it.")*
+- [x] **Persistent results-screen disclaimer banner.** Always-visible "based entirely on what you've told us… does not replace talking to real customers" + "the AI does not decide whether your idea is worth pursuing" (top banner).
+- [x] **Make the human-in-the-loop legible on screen.** Remediating a node visibly changes it *because the founder acted* (status/size/edges re-layout + reviewed dimming on their input; never auto-resolved by the AI).
+- [x] **Surface `howToTest` as the concrete next step.** `NodePanel` shows the AI-suggested "How to test this" box prominently for unvalidated/needs-info nodes.
+- [x] Add the **"→ Launchpad" CTA** after the map (footer "Open the Launchpad").
 - [ ] **Pitch-ready one-liner** (drop into `SUBMISSION.md`): Risk = *false confidence* → Mitigation = uncertainty-first map + "based only on what you told us" framing → HITL = *the founder validates every assumption; the AI never decides if the idea is good.*
 
 ### Phase 8 — Polish & Ship
@@ -678,14 +678,13 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [x] Phase 3
 - [x] Phase 4
 - [x] Phase 5 *(code complete + DB tested; live auth E2E gated on Auth0 dashboard/env)*
-- [x] Phase 6 *(code complete: `WarRoomArena.tsx` arena + orchestration + persistence; tsc/build clean, LLM routes smoke-tested; live browser E2E gated on Auth0)*
-- [ ] Phase 7
+- [x] Phase 6 *(code complete: `WarRoomArena.tsx` arena + right-side round dialogue rail + timed reading intermissions + orchestration/persistence; targeted lint, tsc, and production build clean; live browser E2E still pending)*
+- [~] Phase 7 *(`assumption-map.tsx` code-complete: side panel + remediation + disclaimer + uncertainty-first sizing + microcopy + `howToTest` + CTA, now with the **interconnected-web** layout (2026-06-20). `tsc --noEmit` clean. Pending: in-browser visual verification (gated on Auth0) + the SUBMISSION.md pitch one-liner.)*
 - [ ] Phase 8
 
-> **Next task:** Phase 7 — The Assumption Map (React Flow). The session, debate, and synthesis already produce + persist the assumptions; Phase 6's "ready" interstitial in `WarRoomArena.tsx` is the cross-fade target the map replaces.
-> 1. Build `components/war-room/AssumptionMap.tsx` — React Flow, color-coded by status, **uncertainty-first** (UNVALIDATED/NEEDS_INFO nodes larger/louder than VALIDATED), network layout (not a tree). Read nodes from the canvas (source of truth).
-> 2. Node side-panel: claim + explanation + agent reasoning + validate/modify/remove form + per-node honesty microcopy + `howToTest` surfaced as the concrete next step.
-> 3. Wire remediation: update node status on the canvas and `PATCH /api/sessions/[id] { canvas }`; the node visibly changes *because the founder acted* (legible HITL).
-> 4. Persistent results-screen disclaimer banner + "→ Launchpad" CTA. See the full **Responsible AI** checklist in the Phase 7 section above — it's a scored 10% category, do not reduce it to one banner.
+> **Next task:** Finish Phase 7's loose ends, then Phase 8. The Assumption Map is built and the web redesign has landed (`tsc` clean) — what's left is:
+> 1. **Browser-verify the full War Room:** confirm the debate keeps the roundtable beside the independently scrolling dialogue rail, round dividers are legible, both 10-second intermissions pause orchestration/skip correctly, and the responsive layout stacks cleanly. Then complete synthesis and confirm the map renders (central "The Idea" hub + spokes + non-overlapping per-agent constellations), zoom/pan work, click→panel works, and remediation visibly re-lays-out the node (legible HITL).
+> 2. Add the **pitch-ready one-liner** to `SUBMISSION.md` (the only unchecked Phase 7 item): Risk = *false confidence* → Mitigation = uncertainty-first map + "based only on what you told us" framing → HITL = *the founder validates every assumption; the AI never decides if the idea is good.*
+> 3. Then **Phase 8** — end-to-end pass (intake → debate → map → remediate → canvas persisted), the no-raw-JSON / loading-state / no-storage audit, and deploy.
 >
 > **To unblock live E2E (Phases 5–7):** complete the Auth0 dashboard items — paste real `AUTH0_CLIENT_ID`/`AUTH0_CLIENT_SECRET` into `frontend/.env.local` and add the Login-flow Action setting `email`/`name`/`picture` custom claims on the access token (else `GET /v1/auth/sync` 400s). See "Auth pattern" under Architectural Decisions.

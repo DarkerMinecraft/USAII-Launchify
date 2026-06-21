@@ -243,3 +243,55 @@ User reported the Auth0 tenant is provisioned and values are in `.env.local`. On
 - `next build` clean — **0 errors, 0 warnings**; route table now lists `ƒ /war-room/session/[id]` and `ƒ /api/sessions/[id]` (the missing-module build break is fixed).
 - Smoke-tested the public LLM routes the orchestration drives, against live Gemini: `POST /api/war-room/debate` (SKEPTIC R1) → `{ agent, round, content }` (583-char real response); `POST /api/war-room/assumptions` → `{ assumptions, dropped }` with 6 canonical nodes (`id` `node_001…`, `claim/status/explanation/agentSource/howToTest`, `remediation:null`, `dropped:0`). `/war-room/session/<id>` returns 200 (sign-in gate) with a clean dev log.
 - **Gated on Auth0 (unchanged):** full E2E — sign in → intake → enter session → watch 3 rounds → synthesis → DB rows — still needs the outstanding Auth0 dashboard items (real `AUTH0_CLIENT_ID/SECRET` in `frontend/.env.local` + the email-claim Login Action). The session page server-gates on `auth0.getSession()`, so the arena only renders for a signed-in user; until then the GET/PATCH BFF + resume/persistence paths can't be exercised in the browser. When unblocked, verify with `docker exec foundr-db psql -U foundr -d foundr -c 'select agent,round from "DebateMessage" order by "createdAt"; select claim,status from "AssumptionNode";'`.
+
+## 2026-06-20 (Phase 7 — Assumption Map redesigned as an interconnected web)
+
+Redesigned **only** the visual layout of `frontend/components/war-room/assumption-map.tsx`. The map previously stacked nodes into three vertical status columns (`computeNodes` → `STATUS_CFG.colX`), which read as a "list of things to fix" — against the rubric and the brief's "it is a network map, not a tree/org chart" rule. **All functionality is unchanged**: side panel, validate/modify/remove remediation, `patchCanvas` persistence, status pills, disclaimer banner, Launchpad CTA, and the uncertainty-first sizing (UNVALIDATED 224×114 > NEEDS_INFO 196×98 > VALIDATED 170×84) all carry over untouched.
+
+### What changed
+- **Central hub node:** new `IdeaNode` type (`nodeTypes = { assumption, idea }`) renders `ideaSummary` as a warm, glowing focal node (`#211d18` / border `#4a443a` / `box-shadow 0 0 50px -10px rgba(168,152,127,0.25)`, mono "THE IDEA" eyebrow + Spectral-italic clamped summary). Not selectable; clicks are ignored (`onNodeClick` early-returns on `node.type === "idea"`).
+- **Radial agent-clustered layout:** `computeNodes` replaced by `computeGraph(assumptions, ideaSummary) → { nodes, edges }`. Each agent owns an evenly-spaced sector mirroring the arena (Skeptic top `-90°`, Strategist lower-left `150°`, Operator lower-right `30°`, arc ~100°). Idea node centered at flow origin; each node positioned by `position = {cx − w/2, cy − h/2}`.
+- **No-overlap guarantee (the "appropriately spaced" requirement):** greedy per-sector ring fill — capacity per ring `= floor(SECTOR_ARC / minStep) + 1` where `minStep = ((maxNodeDim + NODE_GAP) / radius)·(180/π)`; a full arc spills to an outer ring (`radius += RING_GAP`). Small clusters use a tighter `IDEAL_STEP`-based arc so 2–3 nodes don't fling to the sector edges; ±12px radius stagger adds organic feel. Math guarantees angular spacing ≥ `minStep`, so boxes never collide regardless of count.
+- **Edges:** spokes `idea → each assumption` (subtle `#4a443a`, width 1.25, opacity 0.7 via `defaultEdgeOptions`, `type:"straight"`); plus **constellation links** chaining each agent's nodes in order, dashed in the agent's *base* color (`#c2692a`/`#3a5a8a`/`#4a7c59`, `strokeDasharray:"3 4"`, opacity 0.4) so the "relating nodes connect to each other" reads as a per-agent web. Edges anchor to **hidden center handles** (`Handle` source+target at `translate(-50%,-50%)`, opacity 0, `pointerEvents:none`) so connectors meet node centers.
+- **Opaque node backgrounds:** status wash now layered over a solid base (`linear-gradient(cfg.bg,cfg.bg), #15140f`) so spoke lines hide under the boxes instead of bleeding through the old low-alpha rgba. Also added a **dashed border for NEEDS_INFO** per the design system (§1).
+- **Zoom/pan preserved exactly** (`panOnDrag`, `zoomOnScroll`, `minZoom 0.4`, `maxZoom 1.6`, `fitView`); `nodesDraggable={false}` kept so the deterministic non-overlapping layout holds. `fitViewOptions.padding` 0.28 → 0.2 to frame the wider web.
+
+### Verification
+- **Environment fix:** `node_modules` was partially installed (`sonner`/`axios`/`next-themes` missing → 8 spurious TS2307s in pre-existing files). Ran `npm install` (added 13, removed 3) to restore; also `rm -rf .next/dev/types && npx next typegen` to clear stale generated stubs for a since-deleted `app/dev-map` route.
+- `npx tsc --noEmit` → **No errors found** (frontend).
+- ⚠️ **Not yet run in the browser** — visual confirmation of the web (central idea + spokes + non-overlapping agent constellations, zoom/pan, click→panel, remediation re-layout) is still gated on the same Auth0 dashboard items as Phase 6 (the session page server-gates on `auth0.getSession()`). Once unblocked: `cd frontend && npm run dev`, complete a session to synthesis, and eyeball the map.
+
+## 2026-06-20 (Phase 7 — AI re-review of assumption nodes on remediation)
+
+Made node remediation resolve ambiguity instead of leaving it. Previously **Modify** only swapped the claim text (status unchanged) and **NEEDS_INFO** had no "here's the info" path, so nodes could stay ambiguous. Now, when the founder adds evidence or rewrites a claim, the AI **re-reviews that single node** and returns a fresh status (the node visibly re-classifies). Product decisions confirmed with the user: **AI adjudicates** all founder responses (Validate/Add-info + Modify both go through the AI; the founder triggers it and can re-edit/remove to override — HITL preserved), and re-review **may still return NEEDS_INFO** if evidence is genuinely thin (three possible outcomes, not forced binary).
+
+### Files
+- **`frontend/prompts/agents.ts`** — added `ASSUMPTION_REVIEW_SYSTEM` + `buildAssumptionReviewPrompt({ ideaSummary, questionnaire, claim, agentSource, explanation, founderInput, kind })`. The prompt re-classifies ONE claim's *evidential* status (VALIDATED/UNVALIDATED/NEEDS_INFO) from the founder's new input + idea + questionnaire; it is explicitly barred from judging whether the idea is good, treats opinion/restated belief as non-evidence, and returns a `howToTest` unless VALIDATED. Imported `AgentRole` into the file. Reuses the existing `formatQA` helper.
+- **`frontend/actions/war-room.ts`** — added the `reviewAssumption` server action mirroring `generateAssumptions`' validation/sanitization/error mapping (`callLLM` at temp 0.2, `parseJSON`, enum-check the status, drop `howToTest` when VALIDATED). Evidence re-review requires non-empty input; a Modify rewrite is itself the input so the note is optional.
+- **`frontend/components/war-room/assumption-map.tsx`** —
+  - Split the old synchronous `handleRemediate` into `handleRemove` (sync, unchanged behavior) and an async `handleReview(nodeId, kind, payload)` that calls `reviewAssumption`, applies the returned `status`/`explanation`/`howToTest` (+ new claim on Modify) to the node, records a `remediation` stamp, and `patchCanvas`es. On failure it toasts and leaves the node untouched.
+  - **Panel stays open after a re-review** (only Remove closes it) so the re-classification is visible on the spot — the legible HITL moment. The form is now always available (not locked after first action) so the founder can iterate when a node comes back UNVALIDATED/NEEDS_INFO; a green "You acted · AI re-reviewed → {status}" note states the change happened *because they acted*, not on its own.
+  - `NodePanel` reworked: `onReview`/`onRemove` props; `submitting` state with a `Loader2` spinner + "Re-reviewing…"/"Submit for re-review" button; status-aware action label ("Add the missing info" for NEEDS_INFO, "Add more evidence" for VALIDATED, else "Add evidence"); general evidence fields ("What did you do or learn?" / "What did that tell you?") plus an optional "Why change it?" note on Modify; a `useEffect` keeps the modify field synced when the claim changes after a review.
+  - **Uncertainty-first preserved/strengthened:** node dimming now keys off `status === "VALIDATED"` (only resolved nodes recede) instead of "any remediation present", so a reviewed-but-still-unvalidated node stays at full prominence.
+
+### Verification
+- `npx tsc --noEmit` → **No errors found** (frontend).
+- ⚠️ Browser/LLM E2E of the re-review (add evidence → AI returns new status → node re-classifies + re-lays-out) is gated on the same Auth0 items; the underlying `reviewAssumption` action drives the public LLM provider layer (Gemini→Groq), so it can be smoke-tested independently once desired.
+
+## 2026-06-20 (Phase 6 polish — dialogue rail + round intermissions)
+
+Moved the debate transcript from beneath the arena into a dedicated right-side rail in `frontend/components/war-room/war-room-arena.tsx`. The SVG roundtable remains the main stage with all three agents and the founder marker; the rail uses the canonical warm detail-panel treatment and scrolls independently. On narrower screens it stacks beneath the table.
+
+### Behavior
+- Messages are grouped into Round 1/2/3 sections with labeled warm-hairline dividers. Typing, turn errors, synthesis, and persistence warnings now render inside the rail at the relevant point in the chronology.
+- Added a real 10-second orchestration pause after Rounds 1 and 2. During the pause the active-speaker glow clears and the rail shows a round-complete reading card, countdown, and `Continue now` control. The next LLM call does not start until the timer completes or the founder skips it.
+- Intermission timers are cleared on unmount and their pending promise is resolved safely; the debate loop checks the stopped ref before continuing. Resume/retry semantics remain unchanged, and Round 3 still proceeds directly into synthesis.
+- Replaced document-level `scrollIntoView` with rail-local, near-bottom-aware autoscroll so someone who scrolls upward to reread a response is not pulled away by the next message.
+
+### Verification
+- `npx tsc --noEmit` → clean.
+- `npx eslint components/war-room/war-room-arena.tsx --max-warnings=0` → clean.
+- `npm run build` → clean (required network access for the three `next/font` Google Font fetches).
+- `git diff --check` → clean.
+- Full-repo lint remains blocked by pre-existing/unrelated findings: unused imports in `launchpad-client.tsx` and `sidebar.tsx`, plus `react-hooks/set-state-in-effect` in the already-dirty `assumption-map.tsx` re-review work. No lint finding points to the arena change.
+- Browser visual/E2E verification of the rail, timer, and responsive stack remains the next manual check.

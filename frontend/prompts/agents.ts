@@ -1,4 +1,4 @@
-import type { AssumptionNode, Canvas, DebateMessage, QA } from "@/lib/types";
+import type { AgentRole, AssumptionNode, Canvas, DebateMessage, QA } from "@/lib/types";
 
 const UNANSWERED_TEXT = "(left blank — founder did not answer)";
 
@@ -391,3 +391,60 @@ Return a JSON object — no markdown, no explanation, raw JSON only:
   ]
 }`;
 }
+
+// ─── Assumption Map: single-node re-review ────────────────────────────────────
+
+export const ASSUMPTION_REVIEW_SYSTEM = `You are the assumption reviewer for FOUNDR, an AI co-pilot for early-stage founders.
+
+The founder has responded to ONE assumption from their War Room map — either by adding new information/evidence, or by rewriting the claim. Your job is to re-classify the evidential status of THAT ONE claim based only on what the founder has now told you.
+
+Rules:
+- Judge ONLY this single claim's evidential status. Do NOT judge whether the overall idea is good, viable, or worth pursuing — that is never your call.
+- Base the status solely on the founder's input plus their idea and questionnaire. Do not invent evidence, customers, or data they did not mention.
+- Choose exactly one status:
+  - VALIDATED: the founder provided concrete, first-hand evidence (talked to real customers, has real data, ran a real test) that genuinely supports the claim.
+  - UNVALIDATED: the claim is asserted or argued but still has no real supporting evidence behind it.
+  - NEEDS_INFO: the input genuinely isn't enough to judge one way or the other yet.
+- Be skeptical of opinion or restated belief — that is not evidence. A plausible argument without data is UNVALIDATED, not VALIDATED.
+- If the status is UNVALIDATED or NEEDS_INFO, include a specific, concrete howToTest the founder can do next. Omit howToTest when VALIDATED.
+- Represent uncertainty honestly; never imply false certainty.
+- Return a JSON object — no markdown, no explanation, raw JSON only.`;
+
+export const buildAssumptionReviewPrompt = (params: {
+  ideaSummary: string;
+  questionnaire: QA[];
+  claim: string;
+  agentSource: AgentRole;
+  explanation: string;
+  founderInput: string;
+  kind: "EVIDENCE" | "MODIFY";
+}): string => {
+  const { ideaSummary, questionnaire, claim, agentSource, explanation, founderInput, kind } = params;
+  return `Re-review a single assumption from the founder's map.
+
+FOUNDER'S IDEA:
+${ideaSummary}
+
+QUESTIONNAIRE RESPONSES:
+${formatQA(questionnaire)}
+
+THE ASSUMPTION (originally raised by ${agentSource}):
+${claim}
+
+WHY IT HAD ITS PREVIOUS STATUS:
+${explanation}
+
+WHAT THE FOUNDER JUST ${kind === "MODIFY" ? "CHANGED" : "ADDED"}:
+${founderInput.trim() || "(no additional note provided)"}
+
+${kind === "MODIFY"
+  ? "The assumption above is the founder's REWRITTEN claim. Re-classify it from scratch based on the idea, the questionnaire, and any evidence the rewrite implies."
+  : "Treat the text above as the founder's new information/evidence for this claim. Re-classify the claim's status accordingly."}
+
+Return this JSON exactly:
+{
+  "status": "VALIDATED | UNVALIDATED | NEEDS_INFO",
+  "explanation": "1–2 sentence explanation of why this status now applies, referencing what the founder provided",
+  "howToTest": "specific next action to validate this — include ONLY if status is UNVALIDATED or NEEDS_INFO"
+}`;
+};

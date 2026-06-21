@@ -1,0 +1,35 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - link "F Launchify Co-Pilot" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e5]: F
+      - generic [ref=e6]:
+        - generic [ref=e7]: Launchify
+        - generic [ref=e8]: Co-Pilot
+    - navigation [ref=e9]:
+      - paragraph [ref=e10]: The Three Pillars
+      - link "War Room Challenge your idea" [ref=e11] [cursor=pointer]:
+        - /url: /war-room
+        - generic [ref=e13]:
+          - generic [ref=e14]: War Room
+          - generic [ref=e15]: Challenge your idea
+      - link "Launchpad Connect & execute" [ref=e16] [cursor=pointer]:
+        - /url: /launchpad
+        - generic [ref=e18]:
+          - generic [ref=e19]: Launchpad
+          - generic [ref=e20]: Connect & execute
+      - link "Pitch Session Practice & perform" [ref=e21] [cursor=pointer]:
+        - /url: /pitch-session
+        - generic [ref=e23]:
+          - generic [ref=e24]: Pitch Session
+          - generic [ref=e25]: Practice & perform
+    - generic [ref=e27]: …
+    - generic [ref=e29]:
+      - paragraph [ref=e30]: Active Idea
+      - paragraph [ref=e31]: No session yet. Start the War Room to begin.
+  - main [ref=e32]:
+    - generic [ref=e34]:
+      - heading "404" [level=1] [ref=e35]
+      - heading "This page could not be found." [level=2] [ref=e37]
+  - button "Open Next.js Dev Tools" [ref=e43] [cursor=pointer]:
+    - img [ref=e44]

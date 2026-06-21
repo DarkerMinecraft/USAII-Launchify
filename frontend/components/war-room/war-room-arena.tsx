@@ -35,6 +35,8 @@ const ROUND_NAMES: Record<1 | 2 | 3, string> = {
   3: "Closing Statements",
 };
 
+const ROUND_BREAK_SECONDS = 10;
+
 const AGENT_META: Record<
   AgentRole,
   { name: string; verb: string; base: string; ring: string; text: string; fill: string; cx: number; cy: number; r: number; }
@@ -46,6 +48,11 @@ const AGENT_META: Record<
 
 type Phase = "loading" | "debating" | "synthesizing" | "ready" | "error";
 type ErrorKind = "load" | "turn" | "synth";
+type Intermission = {
+  afterRound: 1 | 2;
+  nextRound: 2 | 3;
+  secondsRemaining: number;
+};
 
 
 export const WarRoomArena = ({ id }: { id: string }) => {
@@ -62,13 +69,88 @@ export const WarRoomArena = ({ id }: { id: string }) => {
   const [errorKind, setErrorKind] = useState<ErrorKind | null>(null);
   const [failedStep, setFailedStep] = useState<number | null>(null);
   const [persistWarned, setPersistWarned] = useState(false);
+  const [intermission, setIntermission] = useState<Intermission | null>(null);
 
   const startedRef = useRef(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const stoppedRef = useRef(false);
+  const dialogueScrollRef = useRef<HTMLDivElement>(null);
+  const dialogueBottomRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const intermissionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const intermissionResolverRef = useRef<(() => void) | null>(null);
+
+  const finishIntermission = useCallback(() => {
+    if (intermissionTimerRef.current) {
+      clearInterval(intermissionTimerRef.current);
+      intermissionTimerRef.current = null;
+    }
+    setIntermission(null);
+    const resolve = intermissionResolverRef.current;
+    intermissionResolverRef.current = null;
+    resolve?.();
+  }, []);
+
+  const waitForNextRound = useCallback(
+    (afterRound: 1 | 2) =>
+      new Promise<void>((resolve) => {
+        if (intermissionTimerRef.current) {
+          clearInterval(intermissionTimerRef.current);
+        }
+
+        let secondsRemaining = ROUND_BREAK_SECONDS;
+        intermissionResolverRef.current = resolve;
+        setIntermission({
+          afterRound,
+          nextRound: (afterRound + 1) as 2 | 3,
+          secondsRemaining,
+        });
+
+        intermissionTimerRef.current = setInterval(() => {
+          secondsRemaining -= 1;
+          if (secondsRemaining <= 0) {
+            finishIntermission();
+            return;
+          }
+          setIntermission({
+            afterRound,
+            nextRound: (afterRound + 1) as 2 | 3,
+            secondsRemaining,
+          });
+        }, 1000);
+      }),
+    [finishIntermission]
+  );
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [messages.length, activeAgent, phase]);
+    stoppedRef.current = false;
+    return () => {
+      stoppedRef.current = true;
+      if (intermissionTimerRef.current) {
+        clearInterval(intermissionTimerRef.current);
+        intermissionTimerRef.current = null;
+      }
+      const resolve = intermissionResolverRef.current;
+      intermissionResolverRef.current = null;
+      resolve?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!shouldAutoScrollRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      const rail = dialogueScrollRef.current;
+      if (!rail) return;
+      rail.scrollTo({ top: rail.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages.length, activeAgent, phase, intermission?.afterRound]);
+
+  const handleDialogueScroll = useCallback(() => {
+    const rail = dialogueScrollRef.current;
+    if (!rail) return;
+    shouldAutoScrollRef.current =
+      rail.scrollHeight - rail.scrollTop - rail.clientHeight < 96;
+  }, []);
 
   const persistMessages = useCallback(
     async (roundMessages: DebateMessage[]) => {
@@ -135,7 +217,12 @@ export const WarRoomArena = ({ id }: { id: string }) => {
           setThinkingRound(null);
 
           if ((i + 1) % 3 === 0) {
+            setActiveAgent(null);
             await persistMessages(working.filter((m) => m.round === round));
+            if (round < 3) {
+              await waitForNextRound(round as 1 | 2);
+              if (stoppedRef.current) return;
+            }
           }
         } catch (err) {
           setActiveAgent(null);
@@ -154,7 +241,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
 
       await runSynthesis(working, idea, responses);
     },
-    [persistMessages, runSynthesis]
+    [persistMessages, runSynthesis, waitForNextRound]
   );
 
   const init = useCallback(async () => {
@@ -224,6 +311,10 @@ export const WarRoomArena = ({ id }: { id: string }) => {
     thinkingRound ??
     (messages.length > 0 ? messages[messages.length - 1].round : 1);
   const stepperRound: 1 | 2 | 3 = phase === "synthesizing" || phase === "ready" ? 3 : currentRound;
+  const errorRound =
+    phase === "error" && errorKind === "turn" && failedStep !== null
+      ? DEBATE_STEPS[failedStep].round
+      : null;
 
   if (phase === "loading") {
     return (
@@ -268,62 +359,78 @@ export const WarRoomArena = ({ id }: { id: string }) => {
             )}
           </motion.div>
         ) : (
-          <motion.div key="debate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} className="flex flex-1 flex-col">
-            <div className="mx-auto w-full max-w-3xl px-8 pt-10 pb-2">
-              <div className="flex items-center gap-3">
-                <RoundStepper current={stepperRound} />
-                <span className="eyebrow font-mono">
-                  Round {stepperRound} · {ROUND_NAMES[stepperRound]}
-                </span>
-              </div>
-              {ideaSummary && (
-                <p className="mt-3 font-mono" style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5a574f" }}>
-                  War Room · {truncate(ideaSummary, 88)}
-                </p>
-              )}
-            </div>
+          <motion.div
+            key="debate"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7 }}
+            className="flex min-h-screen flex-1 flex-col xl:h-screen xl:min-h-0 xl:overflow-hidden"
+          >
+            <div className="grid flex-1 grid-cols-1 xl:min-h-0 xl:grid-cols-[minmax(0,1fr)_390px]">
+              <section className="flex min-h-[600px] min-w-0 flex-col xl:min-h-0">
+                <div className="flex items-end justify-between gap-5 px-8 pb-1 pt-8">
+                  <div className="min-w-0">
+                    <p className="eyebrow font-mono">The Roundtable · Live debate</p>
+                    {ideaSummary && (
+                      <p
+                        className="mt-2 truncate font-serif italic"
+                        style={{ fontSize: "15px", color: "#9a958c" }}
+                        title={ideaSummary}
+                      >
+                        {truncate(ideaSummary, 96)}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className="shrink-0 font-mono"
+                    style={{
+                      fontSize: "9px",
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: "#5a574f",
+                    }}
+                  >
+                    {messages.length} / 9 statements
+                  </span>
+                </div>
 
-            <Arena activeAgent={phase === "debating" ? activeAgent : null} />
+                <div className="flex min-h-0 flex-1 items-center justify-center">
+                  <Arena activeAgent={phase === "debating" ? activeAgent : null} />
+                </div>
 
-            <div className="mx-auto w-full max-w-3xl px-8 pt-2 pb-1">
-              <Progress value={Math.round((messages.length / 9) * 100)} className="h-[2px] bg-surface-3 [&>[data-slot=progress-indicator]]:bg-agent-skeptic" />
-            </div>
+                <div className="mx-auto w-full max-w-[820px] px-8 pb-8 pt-1">
+                  <Progress
+                    value={Math.round((messages.length / 9) * 100)}
+                    className="h-[2px] bg-surface-3 [&>[data-slot=progress-indicator]]:bg-agent-skeptic"
+                  />
+                </div>
+              </section>
 
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-8 pb-16 pt-2">
-              {messages.map((m, i) => (
-                <MessageBubble key={`${m.agent}-${m.round}-${i}`} message={m} />
-              ))}
-
-              {phase === "debating" && activeAgent && thinkingRound && (
-                <TypingBubble agent={activeAgent} round={thinkingRound} />
-              )}
-
-              {phase === "synthesizing" && <SynthesizingCard />}
-
-              {phase === "error" && errorKind === "turn" && (
-                <TurnError
-                  message={error}
-                  onRetry={() =>
-                    failedStep !== null &&
-                    void runFrom(failedStep, messages, ideaSummary, questionnaire)
+              <DialogueRail
+                currentRound={stepperRound}
+                messages={messages}
+                phase={phase}
+                activeAgent={activeAgent}
+                thinkingRound={thinkingRound}
+                intermission={intermission}
+                error={error}
+                errorKind={errorKind}
+                errorRound={errorRound}
+                persistWarned={persistWarned}
+                scrollRef={dialogueScrollRef}
+                bottomRef={dialogueBottomRef}
+                onScroll={handleDialogueScroll}
+                onContinue={finishIntermission}
+                onRetryTurn={() => {
+                  if (failedStep !== null) {
+                    void runFrom(failedStep, messages, ideaSummary, questionnaire);
                   }
-                />
-              )}
-
-              {phase === "error" && errorKind === "synth" && (
-                <TurnError
-                  message={error ?? "Could not build the assumption map."}
-                  onRetry={() => void runSynthesis(messages, ideaSummary, questionnaire)}
-                />
-              )}
-
-              {persistWarned && phase !== "error" && (
-                <p className="font-mono" style={{ fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a574f" }}>
-                  Note · the debate is running but progress isn&apos;t being saved.
-                </p>
-              )}
-
-              <div ref={bottomRef} />
+                }}
+                onRetrySynthesis={() =>
+                  void runSynthesis(messages, ideaSummary, questionnaire)
+                }
+              />
             </div>
           </motion.div>
         )}
@@ -336,6 +443,250 @@ const Stage = ({ children }: { children: React.ReactNode }) => (
   <div className="flex min-h-screen flex-col" style={{ background: "var(--war-room-bg)" }}>
     {children}
   </div>
+);
+
+type DialogueRailProps = {
+  currentRound: 1 | 2 | 3;
+  messages: DebateMessage[];
+  phase: Phase;
+  activeAgent: AgentRole | null;
+  thinkingRound: 1 | 2 | 3 | null;
+  intermission: Intermission | null;
+  error: string | null;
+  errorKind: ErrorKind | null;
+  errorRound: 1 | 2 | 3 | null;
+  persistWarned: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  bottomRef: React.RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  onContinue: () => void;
+  onRetryTurn: () => void;
+  onRetrySynthesis: () => void;
+};
+
+const DialogueRail = ({
+  currentRound,
+  messages,
+  phase,
+  activeAgent,
+  thinkingRound,
+  intermission,
+  error,
+  errorKind,
+  errorRound,
+  persistWarned,
+  scrollRef,
+  bottomRef,
+  onScroll,
+  onContinue,
+  onRetryTurn,
+  onRetrySynthesis,
+}: DialogueRailProps) => {
+  const groupedMessages: Record<1 | 2 | 3, DebateMessage[]> = {
+    1: messages.filter((message) => message.round === 1),
+    2: messages.filter((message) => message.round === 2),
+    3: messages.filter((message) => message.round === 3),
+  };
+  const visibleRounds = ([1, 2, 3] as const).filter(
+    (round) =>
+      groupedMessages[round].length > 0 ||
+      thinkingRound === round ||
+      errorRound === round
+  );
+
+  return (
+    <aside
+      aria-label="Round dialogue"
+      className="flex h-[70vh] min-h-[560px] flex-col border-t border-hairline bg-surface-2 xl:h-auto xl:min-h-0 xl:border-l xl:border-t-0"
+    >
+      <div
+        className="shrink-0 border-b border-hairline px-5 py-5"
+        style={{ background: "rgba(21,20,15,0.96)" }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <RoundStepper current={currentRound} />
+          <span className="eyebrow font-mono">Round {currentRound} of 3</span>
+        </div>
+        <h2
+          className="mt-3 font-serif italic"
+          style={{ fontSize: "22px", lineHeight: 1.15, color: "#ede9e0" }}
+        >
+          {phase === "synthesizing"
+            ? "Reading the room"
+            : ROUND_NAMES[currentRound]}
+        </h2>
+        <p
+          className="mt-1.5 font-sans"
+          style={{ fontSize: "12.5px", lineHeight: 1.5, color: "#7a7670" }}
+        >
+          The room speaks one voice at a time. Earlier rounds remain here for review.
+        </p>
+      </div>
+
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="min-h-0 flex-1 overflow-y-auto px-5 py-5"
+      >
+        <div className="flex flex-col gap-5">
+          {visibleRounds.map((round) => (
+            <div key={round} className="flex flex-col gap-3.5">
+              <RoundSection
+                round={round}
+                messages={groupedMessages[round]}
+                activeAgent={
+                  phase === "debating" && thinkingRound === round
+                    ? activeAgent
+                    : null
+                }
+              />
+
+              {intermission?.afterRound === round && (
+                <IntermissionCard
+                  intermission={intermission}
+                  onContinue={onContinue}
+                />
+              )}
+
+              {phase === "error" && errorKind === "turn" && errorRound === round && (
+                <TurnError message={error} onRetry={onRetryTurn} />
+              )}
+            </div>
+          ))}
+
+          {phase === "synthesizing" && <SynthesizingCard />}
+
+          {phase === "error" && errorKind === "synth" && (
+            <TurnError
+              message={error ?? "Could not build the assumption map."}
+              onRetry={onRetrySynthesis}
+              retryLabel="Retry synthesis"
+              detail="The complete debate is preserved — retry only the map synthesis."
+            />
+          )}
+
+          {persistWarned && phase !== "error" && (
+            <p
+              className="font-mono"
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#5a574f",
+              }}
+            >
+              Note · the debate is running but progress isn&apos;t being saved.
+            </p>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+const RoundSection = ({
+  round,
+  messages,
+  activeAgent,
+}: {
+  round: 1 | 2 | 3;
+  messages: DebateMessage[];
+  activeAgent: AgentRole | null;
+}) => (
+  <section aria-labelledby={`round-${round}-heading`} className="flex flex-col gap-3.5">
+    <div className="flex items-center gap-3 py-1">
+      <span className="h-px flex-1" style={{ background: "#322b24" }} />
+      <span
+        id={`round-${round}-heading`}
+        className="shrink-0 font-mono"
+        style={{
+          fontSize: "8.5px",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "#7a7670",
+        }}
+      >
+        Round {round} · {ROUND_NAMES[round]}
+      </span>
+      <span className="h-px flex-1" style={{ background: "#322b24" }} />
+    </div>
+
+    {messages.map((message) => (
+      <MessageBubble
+        key={`${message.agent}-${message.round}`}
+        message={message}
+      />
+    ))}
+
+    {activeAgent && <TypingBubble agent={activeAgent} round={round} />}
+  </section>
+);
+
+const IntermissionCard = ({
+  intermission,
+  onContinue,
+}: {
+  intermission: Intermission;
+  onContinue: () => void;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4 }}
+    style={{
+      background: "#16140f",
+      border: "1px solid #4a443a",
+      borderRadius: "13px",
+      padding: "15px 17px",
+      boxShadow: "0 18px 44px -24px rgba(0,0,0,0.85)",
+    }}
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <div
+          className="font-mono"
+          style={{
+            fontSize: "8.5px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#8a7a6a",
+          }}
+        >
+          Round {intermission.afterRound} complete
+        </div>
+        <p
+          className="mt-2 font-serif italic"
+          style={{ fontSize: "15px", lineHeight: 1.5, color: "#b8b2a7" }}
+        >
+          A moment to read. Round {intermission.nextRound} begins in{" "}
+          {intermission.secondsRemaining}s.
+        </p>
+      </div>
+      <span
+        aria-hidden="true"
+        className="flex h-8 min-w-8 items-center justify-center rounded-full border font-mono"
+        style={{
+          borderColor: "#4a443a",
+          color: "#ede9e0",
+          fontSize: "10px",
+        }}
+      >
+        {intermission.secondsRemaining}
+      </span>
+    </div>
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={onContinue}
+      className="mt-3 gap-2"
+    >
+      Continue now
+      <ArrowRight className="h-3.5 w-3.5" />
+    </Button>
+  </motion.div>
 );
 
 const Arena = ({ activeAgent }: { activeAgent: AgentRole | null }) => {
@@ -515,7 +866,17 @@ const ReadyInterstitial = ({ assumptionCount }: { assumptionCount: number }) => 
   </div>
 );
 
-const TurnError = ({ message, onRetry }: { message: string | null; onRetry: () => void }) => (
+const TurnError = ({
+  message,
+  onRetry,
+  retryLabel = "Retry this turn",
+  detail = "The rest of the debate is preserved — retry just this step.",
+}: {
+  message: string | null;
+  onRetry: () => void;
+  retryLabel?: string;
+  detail?: string;
+}) => (
   <Alert className="border-[rgba(194,105,42,0.40)] bg-[rgba(194,105,42,0.08)]">
     <AlertTriangle className="h-4 w-4 text-agent-skeptic" />
     <div className="flex flex-col gap-1">
@@ -523,10 +884,10 @@ const TurnError = ({ message, onRetry }: { message: string | null; onRetry: () =
         {message ?? "Something interrupted the debate."}
       </AlertDescription>
       <AlertDescription className="text-text-muted text-[13px]">
-        The rest of the debate is preserved — retry just this step.
+        {detail}
       </AlertDescription>
       <div className="mt-3">
-        <RetryButton label="Retry this turn" onClick={onRetry} />
+        <RetryButton label={retryLabel} onClick={onRetry} />
       </div>
     </div>
   </Alert>

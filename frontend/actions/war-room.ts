@@ -12,6 +12,8 @@ import {
   buildRound3Prompt,
   ASSUMPTION_MAP_SYSTEM,
   buildAssumptionMapPrompt,
+  ASSUMPTION_REVIEW_SYSTEM,
+  buildAssumptionReviewPrompt,
 } from "@/prompts/agents";
 import type { AgentRole, AssumptionNode, AssumptionStatus, DebateMessage, QA } from "@/lib/types";
 
@@ -122,6 +124,62 @@ export const generateAssumptions = async (params: {
     return { assumptions, dropped: data.assumptions.length - assumptions.length };
   } catch (err) {
     if (err instanceof GeminiParseError) throw new Error("AI returned malformed map output");
+    if (err instanceof LLMError) throw new Error("AI service is unavailable");
+    throw err;
+  }
+};
+
+export const reviewAssumption = async (params: {
+  ideaSummary: string;
+  questionnaireResponses: QA[];
+  claim: string;
+  agentSource: AgentRole;
+  explanation: string;
+  founderInput: string;
+  kind: "EVIDENCE" | "MODIFY";
+}): Promise<{ status: AssumptionStatus; explanation: string; howToTest?: string }> => {
+  const { ideaSummary, questionnaireResponses, claim, agentSource, explanation, founderInput, kind } = params;
+
+  if (!ideaSummary.trim()) throw new Error("ideaSummary is required");
+  if (!claim.trim()) throw new Error("claim is required");
+  if (!VALID_AGENTS.has(agentSource)) throw new Error("invalid agentSource");
+  if (kind !== "EVIDENCE" && kind !== "MODIFY") throw new Error("invalid review kind");
+  // Evidence re-review needs something to assess; a claim rewrite is itself the input.
+  if (kind === "EVIDENCE" && !founderInput.trim()) throw new Error("Add some information first");
+
+  try {
+    const userPrompt = buildAssumptionReviewPrompt({
+      ideaSummary,
+      questionnaire: questionnaireResponses,
+      claim,
+      agentSource,
+      explanation,
+      founderInput,
+      kind,
+    });
+    const raw = await callLLM(ASSUMPTION_REVIEW_SYSTEM, userPrompt, { temperature: 0.2 });
+    const data = parseJSON<{ status?: string; explanation?: string; howToTest?: string }>(raw);
+
+    if (
+      !data ||
+      !VALID_STATUSES.has(data.status as AssumptionStatus) ||
+      typeof data.explanation !== "string" ||
+      !data.explanation.trim()
+    ) {
+      throw new Error("AI returned an unexpected review format");
+    }
+
+    const status = data.status as AssumptionStatus;
+    const result: { status: AssumptionStatus; explanation: string; howToTest?: string } = {
+      status,
+      explanation: data.explanation.trim(),
+    };
+    if (status !== "VALIDATED" && typeof data.howToTest === "string" && data.howToTest.trim()) {
+      result.howToTest = data.howToTest.trim();
+    }
+    return result;
+  } catch (err) {
+    if (err instanceof GeminiParseError) throw new Error("AI returned malformed review output");
     if (err instanceof LLMError) throw new Error("AI service is unavailable");
     throw err;
   }

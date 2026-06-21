@@ -1,0 +1,194 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - link "F Launchify Co-Pilot" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e5]: F
+      - generic [ref=e6]:
+        - generic [ref=e7]: Launchify
+        - generic [ref=e8]: Co-Pilot
+    - navigation [ref=e9]:
+      - paragraph [ref=e10]: The Three Pillars
+      - link "War Room Challenge your idea" [ref=e11] [cursor=pointer]:
+        - /url: /war-room
+        - generic [ref=e13]:
+          - generic [ref=e14]: War Room
+          - generic [ref=e15]: Challenge your idea
+      - link "Launchpad Connect & execute" [ref=e16] [cursor=pointer]:
+        - /url: /launchpad
+        - generic [ref=e18]:
+          - generic [ref=e19]: Launchpad
+          - generic [ref=e20]: Connect & execute
+      - link "Pitch Session Practice & perform" [ref=e21] [cursor=pointer]:
+        - /url: /pitch-session
+        - generic [ref=e23]:
+          - generic [ref=e24]: Pitch Session
+          - generic [ref=e25]: Practice & perform
+    - link "Sign in" [ref=e68] [cursor=pointer]:
+      - /url: /auth/login
+      - img [ref=e69]
+      - text: Sign in
+    - generic [ref=e29]:
+      - paragraph [ref=e30]: Active Idea
+      - paragraph [ref=e31]: No session yet. Start the War Room to begin.
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - img [ref=e35]
+        - paragraph [ref=e37]: This analysis is based entirely on what you told us — it does not replace talking to real customers. The AI does not decide whether your idea is worth pursuing.
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - heading "Your Assumption Map" [level=1] [ref=e40]
+          - paragraph [ref=e41]: 9 assumptions · click any node to review
+        - generic [ref=e42]:
+          - generic [ref=e43]: 4 Unvalidated
+          - generic [ref=e44]: 3 Needs Info
+          - generic [ref=e45]: 2 Validated
+      - generic [ref=e46]:
+        - application [ref=e48]:
+          - generic [ref=e50]:
+            - generic:
+              - generic:
+                - img:
+                  - group "Edge from __idea__ to node_001" [ref=e72] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_002" [ref=e75] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_003" [ref=e78] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_004" [ref=e81] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_005" [ref=e84] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_006" [ref=e87] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_007" [ref=e90] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_008" [ref=e93] [cursor=pointer]
+                - img:
+                  - group "Edge from __idea__ to node_009" [ref=e96] [cursor=pointer]
+                - img:
+                  - group "Edge from node_001 to node_002" [ref=e99] [cursor=pointer]
+                - img:
+                  - group "Edge from node_002 to node_003" [ref=e102] [cursor=pointer]
+                - img:
+                  - group "Edge from node_003 to node_004" [ref=e105] [cursor=pointer]
+                - img:
+                  - group "Edge from node_004 to node_001" [ref=e108] [cursor=pointer]
+                - img:
+                  - group "Edge from node_005 to node_006" [ref=e111] [cursor=pointer]
+                - img:
+                  - group "Edge from node_006 to node_007" [ref=e114] [cursor=pointer]
+                - img:
+                  - group "Edge from node_007 to node_005" [ref=e117] [cursor=pointer]
+                - img:
+                  - group "Edge from node_008 to node_009" [ref=e120] [cursor=pointer]
+              - generic:
+                - group [ref=e123]:
+                  - generic [ref=e124]:
+                    - generic [ref=e125]: The Idea
+                    - paragraph [ref=e126]: A mobile app that helps freelance designers find and book short-notice studio space near them, paying by the hour.
+                - group [ref=e127] [cursor=pointer]:
+                  - generic [ref=e128]:
+                    - generic [ref=e129]:
+                      - img [ref=e130]
+                      - generic [ref=e132]: Unvalidated
+                    - paragraph [ref=e133]: Freelance designers regularly need physical studio space on short notice.
+                    - generic [ref=e134]: The Skeptic
+                - group [ref=e135] [cursor=pointer]:
+                  - generic [ref=e136]:
+                    - generic [ref=e137]:
+                      - img [ref=e138]
+                      - generic [ref=e140]: Unvalidated
+                    - paragraph [ref=e141]: Designers will pay an hourly premium for convenience over a monthly coworking membership.
+                    - generic [ref=e142]: The Strategist
+                - group [ref=e143] [cursor=pointer]:
+                  - generic [ref=e144]:
+                    - generic [ref=e145]:
+                      - img [ref=e146]
+                      - generic [ref=e148]: Unvalidated
+                    - paragraph [ref=e149]: There is enough underused studio inventory to supply demand in target cities.
+                    - generic [ref=e150]: The Operator
+                - group [ref=e151] [cursor=pointer]:
+                  - generic [ref=e152]:
+                    - generic [ref=e153]:
+                      - img [ref=e154]
+                      - generic [ref=e156]: Unvalidated
+                    - paragraph [ref=e157]: Existing coworking apps don't already solve this well enough.
+                    - generic [ref=e158]: The Strategist
+                - group [ref=e159] [cursor=pointer]:
+                  - generic [ref=e160]:
+                    - generic [ref=e161]:
+                      - img [ref=e162]
+                      - generic [ref=e165]: Needs Info
+                    - paragraph [ref=e166]: Designers discover new tools primarily through peer referral.
+                    - generic [ref=e167]: The Strategist
+                - group [ref=e168] [cursor=pointer]:
+                  - generic [ref=e169]:
+                    - generic [ref=e170]:
+                      - img [ref=e171]
+                      - generic [ref=e174]: Needs Info
+                    - paragraph [ref=e175]: Studio owners can be onboarded without lengthy contracts.
+                    - generic [ref=e176]: The Operator
+                - group [ref=e177] [cursor=pointer]:
+                  - generic [ref=e178]:
+                    - generic [ref=e179]:
+                      - img [ref=e180]
+                      - generic [ref=e183]: Needs Info
+                    - paragraph [ref=e184]: Hourly insurance/liability for short bookings is manageable.
+                    - generic [ref=e185]: The Skeptic
+                - group [ref=e186] [cursor=pointer]:
+                  - generic [ref=e187]:
+                    - generic [ref=e188]:
+                      - img [ref=e189]
+                      - generic [ref=e192]: Validated
+                    - paragraph [ref=e193]: The founder has direct access to a designer community for early users.
+                    - generic [ref=e194]: The Operator
+                - group [ref=e195] [cursor=pointer]:
+                  - generic [ref=e196]:
+                    - generic [ref=e197]:
+                      - img [ref=e198]
+                      - generic [ref=e201]: Validated · reviewed
+                    - paragraph [ref=e202]: Designers already book space ad-hoc today via DMs and group chats.
+                    - generic [ref=e203]: The Skeptic
+          - img
+          - link "React Flow attribution" [ref=e52] [cursor=pointer]:
+            - /url: https://reactflow.dev
+            - text: React Flow
+        - generic [ref=e274]:
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - img [ref=e277]
+              - generic [ref=e280]: Needs Info
+            - button [ref=e281] [cursor=pointer]:
+              - img [ref=e282]
+          - generic [ref=e285]:
+            - generic [ref=e286]:
+              - paragraph [ref=e287]: Assumption
+              - paragraph [ref=e288]: Hourly insurance/liability for short bookings is manageable.
+            - generic [ref=e289]: Raised by The Skeptic
+            - generic [ref=e290]:
+              - paragraph [ref=e291]: Why this status
+              - paragraph [ref=e292]: Regulatory and liability exposure is unclear.
+            - generic [ref=e293]:
+              - paragraph [ref=e294]: How to test this
+              - paragraph [ref=e295]: Get a quote from one short-term-rental insurer.
+            - paragraph [ref=e296]: This status was AI-inferred from only what you told us. Verify before trusting it.
+            - generic [ref=e297]:
+              - paragraph [ref=e298]: What do you want to do?
+              - generic [ref=e299]:
+                - button "Add information & re-review" [active] [ref=e300] [cursor=pointer]
+                - button "Validate this" [ref=e301] [cursor=pointer]
+                - button "Modify the claim" [ref=e302] [cursor=pointer]
+                - button "Remove this assumption" [ref=e303] [cursor=pointer]
+              - generic [ref=e305]:
+                - paragraph [ref=e306]: What can you add? The Skeptic will re-review
+                - textbox "e.g. I interviewed 8 studio owners; 6 said they have idle hours they'd happily list…" [ref=e307]
+      - generic [ref=e54]:
+        - paragraph [ref=e55]: Review your assumptions, then take your first real step in the Launchpad.
+        - link "Open the Launchpad" [ref=e56] [cursor=pointer]:
+          - /url: /launchpad?sessionId=dev-scratch
+          - text: Open the Launchpad
+          - img [ref=e57]
+  - button "Open Next.js Dev Tools" [ref=e64] [cursor=pointer]:
+    - img [ref=e65]
+  - alert [ref=e235]
