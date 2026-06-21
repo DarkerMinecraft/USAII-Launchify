@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const pillars = [
   {
@@ -52,22 +53,19 @@ export const MobileHeader = () => {
       </Link>
 
       {user ? (
-        <a
-          href="/auth/logout"
-          aria-label="Sign out"
-          className="flex items-center gap-1.5 text-[11.5px] font-medium text-text-dim px-3 py-1.5 rounded-lg bg-surface-3 border border-border"
-        >
-          <LogOut className="w-3 h-3" aria-hidden="true" />
-          Sign out
-        </a>
+        <Button variant="ghost" size="sm" className="text-[11.5px] text-text-dim bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
+          <a href="/auth/logout" aria-label="Sign out">
+            <LogOut className="w-3 h-3" aria-hidden="true" />
+            Sign out
+          </a>
+        </Button>
       ) : (
-        <a
-          href="/auth/login"
-          className="flex items-center gap-1.5 text-[11.5px] font-semibold text-foreground px-3 py-1.5 rounded-lg bg-surface-3 border border-border"
-        >
-          <LogIn className="w-3 h-3" aria-hidden="true" />
-          Sign in
-        </a>
+        <Button size="sm" className="text-[11.5px] bg-surface-3 border border-border h-auto py-1.5 rounded-lg" asChild>
+          <a href="/auth/login">
+            <LogIn className="w-3 h-3" aria-hidden="true" />
+            Sign in
+          </a>
+        </Button>
       )}
     </header>
   );

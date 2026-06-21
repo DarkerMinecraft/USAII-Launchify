@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { listSessions, deleteSession } from "@/actions/sessions";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -117,9 +118,9 @@ export const SessionList = () => {
               transition={{ duration: 0.22, delay: i * 0.04 }}
               className="relative"
             >
-              <div
+              <Card
                 className={cn(
-                  "bg-surface-1 border rounded-[11px] overflow-hidden transition-colors duration-[150ms]",
+                  "bg-surface-1 rounded-[11px] shadow-none ring-0 overflow-hidden transition-colors duration-[150ms] gap-0 py-0",
                   isConfirming ? "border-[rgba(194,105,42,0.45)]" : "border-border"
                 )}
               >
@@ -246,7 +247,7 @@ export const SessionList = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </Card>
             </motion.div>
           );
         })}

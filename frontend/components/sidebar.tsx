@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, LogOut } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, Lock, LogIn, Settings } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { UserSettingsDialog } from "@/components/user-settings-dialog";
 
 const pillars = [
   {
@@ -48,6 +52,7 @@ const pillars = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const { user, isLoading } = useUser();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
@@ -71,7 +76,7 @@ export const Sidebar = () => {
       {/* Pillar navigation */}
       <nav className="flex flex-col gap-0.5 p-3 flex-1">
         <p className="eyebrow px-3 pb-2 pt-1">
-          The Three Pillars
+          Pillars
         </p>
 
         {pillars.map(({ label, href, icon: Icon, locked, description, dotActiveClass, descActiveClass }) => {
@@ -124,44 +129,44 @@ export const Sidebar = () => {
             …
           </div>
         ) : user ? (
-          <div className="flex items-center gap-2.5">
-            <div className="flex-1 min-w-0">
-              <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
-                {user.name ?? user.email ?? "Signed in"}
-              </p>
-              <p className="eyebrow-sm truncate mt-0.5">
-                Signed in
-              </p>
-            </div>
-            <a
-              href="/auth/logout"
-              aria-label="Sign out"
-              className="shrink-0 flex items-center justify-center rounded-lg transition-colors w-[30px] h-[30px] bg-surface-3 border border-border text-text-muted"
+          <>
+            <UserSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+            <Button
+              variant="ghost"
+              onClick={() => setSettingsOpen(true)}
+              className="flex items-center gap-2.5 w-full justify-start rounded-lg px-1 py-1.5 h-auto"
             >
-              <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-            </a>
-          </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-medium leading-tight text-[12.5px] text-foreground">
+                  {user.name ?? user.email ?? "Signed in"}
+                </p>
+                <p className="eyebrow-sm truncate mt-0.5">
+                  Signed in
+                </p>
+              </div>
+              <Settings className="w-3.5 h-3.5 text-text-faint shrink-0" aria-hidden="true" />
+            </Button>
+          </>
         ) : (
-          <a
-            href="/auth/login"
-            className="flex items-center justify-center gap-2 rounded-lg transition-colors py-[9px] px-3 bg-surface-3 border border-border text-foreground text-[12.5px] font-semibold"
-          >
-            <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
-            Sign in
-          </a>
+          <Button className="w-full text-[12.5px]" asChild>
+            <a href="/auth/login">
+              <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
+              Sign in
+            </a>
+          </Button>
         )}
       </div>
 
       {/* Idea summary card */}
       <div className="p-3 border-t border-hairline">
-        <div className="card rounded-[11px] p-3 bg-surface-2 border border-border">
+        <Card className="rounded-[11px] p-3 bg-surface-2 border-border shadow-none ring-0 gap-0">
           <p className="eyebrow mb-2">
             Active Idea
           </p>
           <p className="font-serif italic leading-relaxed text-[12px] text-text-faint">
             No session yet. Start the War Room to begin.
           </p>
-        </div>
+        </Card>
       </div>
     </aside>
   );
