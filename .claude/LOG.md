@@ -295,3 +295,89 @@ Moved the debate transcript from beneath the arena into a dedicated right-side r
 - `git diff --check` → clean.
 - Full-repo lint remains blocked by pre-existing/unrelated findings: unused imports in `launchpad-client.tsx` and `sidebar.tsx`, plus `react-hooks/set-state-in-effect` in the already-dirty `assumption-map.tsx` re-review work. No lint finding points to the arena change.
 - Browser visual/E2E verification of the rail, timer, and responsive stack remains the next manual check.
+
+## 2026-06-21 (Public landing overhaul — Framer Motion + shader)
+
+Rebuilt the signed-out `/` experience as a full-width, premium launch page while preserving the existing signed-in session dashboard. The starting `app/page.tsx` was already uncompilable (mismatched `<a>`/`</Link>`, missing `auth0`/`Plus`/`SessionList` imports, and a duplicated helper); the new server page restores the intended auth branch cleanly.
+
+### Auth-aware layout
+- `app/layout.tsx` is now async and calls the established server-side `auth0.getSession()`. `<Sidebar />` is only mounted when a session exists—no CSS-only hiding and no client auth flash.
+- Signed-out `/` gets the public marketing page with no sidebar. Signed-in `/` retains the discoverable product intent (dashboard + `SessionList`) and renders with the sidebar, as do the authenticated app routes.
+
+### Landing page
+- Added `components/landing/landing-page.tsx` as the focused client boundary for Framer Motion. It includes public navigation, cinematic hero, primary/secondary CTAs, animated roundtable product preview, three-step reasoning pipeline, differentiated advisor cards, visible-uncertainty/responsible-AI section, final CTA, and footer.
+- Motion uses staggered entrance/scroll reveals plus hover/tap microinteractions. `useReducedMotion()` disables entrance-from-hidden and perpetual/hover movement when requested.
+- Kept the canonical FOUNDR warm editorial system (Spectral/Hanken/JetBrains Mono, warm near-black surfaces, burnt orange/slate blue/forest green agents) rather than adopting a generic neon SaaS look. No fabricated customer logos or social proof were added.
+- Mobile uses one-column sections, stacked CTAs, explicit viewport-width bounds, and a compact nav CTA; desktop uses the cinematic two-column hero.
+
+### Shader
+- Added `components/ui/shader-animation.tsx` at the project’s existing shadcn-compatible shared UI path. It implements the supplied Three.js full-plane shader, caps device pixel ratio at 2, resizes with the container, marks the canvas decorative, and disposes the renderer/geometry/material/RAF on unmount.
+- Reduced-motion renders one static frame. A WebGL support preflight avoids noisy runtime errors and leaves the layered warm CSS background usable when WebGL is unavailable.
+- Installed `three` (`^0.184.0`) and dev dependency `@types/three` (`^0.184.1`) with npm; Framer Motion and lucide-react were already installed.
+
+### Verification
+- `npx tsc --noEmit` → clean.
+- Targeted ESLint over `app/page.tsx`, `app/layout.tsx`, `components/landing/landing-page.tsx`, and `components/ui/shader-animation.tsx` with `--max-warnings=0` → clean.
+- `npm run build` → clean; all routes generated successfully.
+- Signed-out dev smoke: `GET /` → 200; rendered HTML contains the new hero and no sidebar marker.
+- Headless Chrome visual capture at 1440px confirmed the hierarchy/layout. GPU-disabled headless capture exercised the graceful no-WebGL fallback without browser errors after the preflight was added. Confirm the live shader once in a normal GPU-enabled browser before demo.
+- Full-repo `npm run lint -- --max-warnings=0` still fails only on pre-existing unrelated findings: unused imports in `launchpad-client.tsx` and `sidebar.tsx`, plus `react-hooks/set-state-in-effect` in `assumption-map.tsx`.
+
+## 2026-06-21 (Landing shader contrast refinement)
+
+- Brightened the hero shader without changing foreground layout: line energy `0.002 → 0.0035`, remapped the three channels to vivid Skeptic orange / Strategist blue / Operator green, then added filmic exponential compression + gamma lift so highlights stay colorful instead of clipping white.
+- Increased the shader compositing layer from 40% to 65% opacity with modest saturation/contrast boosts; the existing dark text-side overlay still protects hero copy readability.
+- `npx tsc --noEmit` and targeted ESLint for the landing/shader components both pass.
+
+## 2026-06-21 (Landing shader — diagonal ribbon/louver direction)
+
+- Replaced the radial line field with a reference-driven optical louver shader: bowed diagonal black blades, prismatic openings, hot edge rims, fine glass-like striations, and slow sweeping motion.
+- The illuminated gaps cycle per blade through warm orange, cyan, saturated blue, and white-hot highlights instead of washing the whole frame in one hue. Adjacent-band phase offsets keep the field varied across the viewport.
+- Raised the shader compositing strength/saturation and relaxed the hero darkness overlay while keeping a stronger text-side gradient for legibility.
+- Verified the actual WebGL output using Chrome software rendering at 1440×1000; geometry reads as curved layered ribbons behind the hero/roundtable rather than the old soft radial texture.
+- `npx tsc --noEmit` and targeted ESLint remain clean.
+
+## 2026-06-21 (Landing shader — exact 21st.dev ripple restored)
+
+- User clarified the exact target as `21st.dev/community/components/aliimam/shader-animation/default` and supplied its integration source. Replaced the interim louver math with that component’s original ripple/interference fragment shader verbatim (`length(uv)` wavefronts + diagonal `mod` interference).
+- Retained the approved high-saturation/high-contrast landing compositing and the existing production safeguards: DPR cap, WebGL preflight/fallback, reduced-motion static frame, resize handling, and full Three.js disposal.
+- Software-WebGL capture at 1440×1000 confirmed expanding curved prismatic wavefronts across the hero. Added a localized headline drop shadow so white-hot ripple segments do not compromise copy contrast.
+- `npx tsc --noEmit` and targeted ESLint pass.
+
+## 2026-06-21 (Landing background experiment — animated SVG paths)
+
+- Added `components/ui/background-paths.tsx`, adapted from the supplied deterministic Framer Motion implementation. It renders two mirrored 36-path SVG fields with the canonical Skeptic/Strategist/Operator colors, deterministic durations, no pointer capture, `aria-hidden`, and a static reduced-motion state.
+- Preserved `components/ui/shader-animation.tsx` unchanged so the approved 21st.dev ripple can be restored with a single landing import/background-layer swap.
+- Changed only the hero background layers in `components/landing/landing-page.tsx`; navigation, hero copy, CTAs, roundtable preview, sections, responsive structure, auth, and sidebar behavior are untouched.
+- The first 1440px capture showed the initial path opacity was too subtle beneath the readability scrim. Increased stroke width/opacity and colored glow while keeping a stronger left-side scrim so paths favor the open/right area rather than competing with the headline.
+- No dependencies installed: Framer Motion, shadcn `Button`, `cn`, `clsx`, `tailwind-merge`, and the standard `components/ui` path already existed. No demo route created because the experiment is directly integrated on `/`.
+- `npx tsc --noEmit` and targeted ESLint pass. A final post-tuning headless capture was unavailable because the environment’s GUI execution allowance was exhausted. `npm run build` reached Next/Turbopack but was blocked only by sandboxed Google Font network fetches; the previous production build before this isolated SVG swap was clean.
+
+## 2026-06-21 — Landing hero: swap BackgroundPaths → Three.js ripple shader
+- Per user request, replaced the animated SVG `BackgroundPaths` hero background in `components/landing/landing-page.tsx` with the approved `ShaderAnimation` (Three.js rippling shader, `components/ui/shader-animation.tsx`).
+- Background layer now: `-z-20 opacity-80 mix-blend-screen saturate-[1.15]` wrapping `<ShaderAnimation />` (was opacity-95/saturate-1.25 for the paths). The `-z-30` radial gradient and `-z-10` readability scrim are unchanged.
+- `three`/`@types/three` already installed; no dep changes. `npx tsc --noEmit` clean.
+- `BackgroundPaths` component left in place for easy rollback.
+
+## 2026-06-21 — Landing hero: ripple shader → Framer Motion concentric rainbow wave
+- User clarified the intended animation: color should travel *section-by-section, sequentially* (a ripple starting and propagating), not the continuous Three.js shader flow.
+- Researched candidates (Three.js shader re-pulse, Aceternity/Magic UI tile-grid ripples, React Bits/ogl WebGL libs, Framer Motion staggered rings). User chose: smooth concentric wave · auto-loop only · keep rainbow shader colors.
+- Built `components/ui/ripple-wave.tsx`: 8 concentric `motion.div` rings, each a radial-gradient ring edge in an evenly-sampled rainbow hue (0–300), expanding via `scale` (transform/opacity only, GPU-composited) on an infinite loop with per-ring `delay = i * (duration/RINGS)`, so hue visibly travels outward. `useReducedMotion()` → static rainbow glow fallback. Focal origin defaults to 72%/38% (matches hero radial-gradient focus).
+- Swapped `<ShaderAnimation />` → `<RippleWave />` in the `-z-20` hero layer of `components/landing/landing-page.tsx` (`opacity-90 mix-blend-screen saturate-[1.1]`). `-z-30` gradient and `-z-10` readability scrim untouched.
+- `shader-animation.tsx` and `background-paths.tsx` left in tree for one-line rollback.
+- `npx tsc --noEmit` clean. Verified in-browser at 1440px via Playwright: rings emanate and color cycles outward across frames, 0 console errors, headline/CTAs legible.
+
+## 2026-06-21 — Revert: restore Three.js ShaderAnimation on landing hero
+- User preferred the prior shader look over the Framer Motion ripple wave. Reverted `components/landing/landing-page.tsx` `-z-20` hero layer back to `<ShaderAnimation />` (`opacity-80 mix-blend-screen saturate-[1.15]`) and restored the import.
+- Deleted the unused `components/ui/ripple-wave.tsx`. `npx tsc --noEmit` clean.
+
+## 2026-06-21 — Landing hero title: animated word-cycle
+- Applied the supplied `AnimatedTextCycle` (Framer Motion blur+slide swap, spring-animated width) to the hero h1. Rewrote the second line "on the table." → "to the ___." with the last word cycling through stress-test synonyms.
+- New `components/ui/animated-text-cycle.tsx` (default export), adapted from the provided code: (1) hidden measurement wrapper changed `<div>`→`<span>` (ref `HTMLSpanElement`) so the component is valid phrasing content inside the `<h1>`; (2) dropped hardcoded `font-bold` so the slot inherits the title's `font-serif font-medium italic`; (3) added `useReducedMotion` guard → plain in-place text swap when reduced; (4) typed `containerVariants: Variants` (FM v12 requires it for the `ease` literals).
+- Integrated in `components/landing/landing-page.tsx`: cycle set `["test","fire","proof","trial","crucible"]`, `interval={2800}`, cycling word in warm accent `text-[#c2692a]`. Dropped "sword" (from the option preview) — "put to the sword" connotes *slaughter*, off-brand; one-line add-back if wanted.
+- `npx tsc --noEmit` clean. Browser-verified at 1440px: renders "Put your idea / to the *fire*." with accent italic word, correct period placement, 0 console errors.
+
+## 2026-06-21 — Landing hero title: cycle the whole 3-word phrase
+- Per user, expanded the animated slot from a single word to the entire second line. "Put your idea" is static; the 3-word phrase after it now cycles: "on the table." · "to the test." · "through the fire." · "under the lens." · "in the arena." (each preserves/emphasizes the stress-test meaning).
+- Whole phrase rendered in warm accent italic (parent span `text-[#c2692a]`; `AnimatedTextCycle` inherits color).
+- Moved the trailing "." *into* each cycled string. Previously the period sat outside the width-animated slot and visibly detached/floated mid-transition; baking it into the phrase keeps it attached. Verified in-browser (1440px) across phrases; period stays put, no clipping/wrap, 0 console errors. `tsc` clean.

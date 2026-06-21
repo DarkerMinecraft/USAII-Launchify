@@ -1,0 +1,177 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "L Launchify Founder co-pilot" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e7]: L
+            - generic [ref=e8]:
+              - generic [ref=e9]: Launchify
+              - generic [ref=e10]: Founder co-pilot
+          - navigation "Public navigation" [ref=e11]:
+            - link "Method" [ref=e12] [cursor=pointer]:
+              - /url: "#method"
+            - link "Advisors" [ref=e13] [cursor=pointer]:
+              - /url: "#advisors"
+            - link "Safeguard" [ref=e14] [cursor=pointer]:
+              - /url: "#safeguard"
+          - generic [ref=e15]:
+            - link "Sign in" [ref=e16] [cursor=pointer]:
+              - /url: /auth/login
+            - link "Enter the room" [ref=e17] [cursor=pointer]:
+              - /url: /auth/login
+              - generic [ref=e18]: Enter the room
+              - img [ref=e19]
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e23]: AI decision support for founders
+            - heading "Put your idea on the table." [level=1] [ref=e25]:
+              - text: Put your idea
+              - generic [ref=e26]: on the table.
+            - paragraph [ref=e27]: Three AI advisors debate the assumptions beneath your startup—then turn what survives into a map you can challenge, validate, and act on.
+            - generic [ref=e28]:
+              - link "Stress-test your idea" [ref=e29] [cursor=pointer]:
+                - /url: /auth/login
+                - img [ref=e30]
+                - text: Stress-test your idea
+                - img [ref=e39]
+              - link "See how it works" [ref=e41] [cursor=pointer]:
+                - /url: "#method"
+                - text: See how it works
+                - img [ref=e42]
+            - generic [ref=e44]:
+              - generic [ref=e45]:
+                - generic [ref=e46]: "3"
+                - generic [ref=e47]: opinionated advisors
+              - generic [ref=e48]:
+                - generic [ref=e49]: "3"
+                - generic [ref=e50]: structured rounds
+              - generic [ref=e51]:
+                - generic [ref=e52]: "1"
+                - generic [ref=e53]: living assumption map
+          - img "A preview of three AI advisors arranged around a founder's idea in the War Room" [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]: Live · Round 2 of 3
+              - generic [ref=e58]: debating
+            - generic [ref=e63]:
+              - paragraph [ref=e64]: On the table
+              - paragraph [ref=e65]: Your idea, under pressure
+            - generic [ref=e66]:
+              - generic [ref=e68]: The Skeptic
+              - generic [ref=e69]: CHALLENGES
+            - generic [ref=e70]:
+              - generic [ref=e72]: The Strategist
+              - generic [ref=e73]: REFRAMES
+            - generic [ref=e74]:
+              - generic [ref=e76]: The Operator
+              - generic [ref=e77]: GROUNDS
+            - generic [ref=e80]: You
+      - main [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: From conviction to evidence
+            - heading "A reasoning pipeline, not another answer machine." [level=2] [ref=e86]
+            - paragraph [ref=e87]: Launchify turns a founder's messy context into multiple perspectives, visible uncertainty, and a next action the founder still controls.
+          - generic [ref=e88]:
+            - article [ref=e89]:
+              - generic [ref=e90]:
+                - generic [ref=e91]: "01"
+                - img [ref=e93]
+              - heading "The Roundtable" [level=3] [ref=e102]
+              - paragraph [ref=e103]: Three opinionated AI advisors interrogate the evidence, market, and execution plan across a structured debate.
+            - article [ref=e104]:
+              - generic [ref=e105]:
+                - generic [ref=e106]: "02"
+                - img [ref=e108]
+              - heading "The Assumption Map" [level=3] [ref=e113]
+              - paragraph [ref=e114]: Every consequential claim becomes visible—supported, untested, or still missing information—so risk has a shape.
+            - article [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e117]: "03"
+                - img [ref=e119]
+              - heading "The Launchpad" [level=3] [ref=e124]
+              - paragraph [ref=e125]: "Turn uncertainty into a concrete first move: customer validation, focused research, and an execution brief built from your map."
+        - generic [ref=e127]:
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - paragraph [ref=e130]: The room has a point of view
+              - heading "Productive disagreement, by design." [level=2] [ref=e131]
+            - paragraph [ref=e132]: Each advisor stays in its lane, reads the full context, and responds to the others—not three copies of the same generic assistant.
+          - generic [ref=e133]:
+            - article [ref=e134]:
+              - generic [ref=e137]: CHALLENGES
+              - heading "The Skeptic" [level=3] [ref=e138]
+              - paragraph [ref=e139]: Finds the claims conviction is quietly standing in for evidence.
+              - paragraph [ref=e141]: “What would have to be true?”
+            - article [ref=e142]:
+              - generic [ref=e145]: REFRAMES
+              - heading "The Strategist" [level=3] [ref=e146]
+              - paragraph [ref=e147]: Tests positioning, timing, and whether the market sees the opportunity the same way you do.
+              - paragraph [ref=e149]: “Why this wedge, right now?”
+            - article [ref=e150]:
+              - generic [ref=e153]: GROUNDS
+              - heading "The Operator" [level=3] [ref=e154]
+              - paragraph [ref=e155]: Pulls the idea down to dependencies, sequencing, and what actually has to ship first.
+              - paragraph [ref=e157]: “What breaks in practice?”
+        - generic [ref=e158]:
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e163]:
+                - paragraph [ref=e164]: Assumption map
+                - paragraph [ref=e165]: Uncertainty stays visible.
+              - img [ref=e166]
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - generic [ref=e174]:
+                  - paragraph [ref=e175]: Validated
+                  - paragraph [ref=e176]: Supported by evidence
+                - img [ref=e177]
+              - generic [ref=e179]:
+                - generic [ref=e181]:
+                  - paragraph [ref=e182]: Unvalidated
+                  - paragraph [ref=e183]: Important and still untested
+                - img [ref=e184]
+              - generic [ref=e186]:
+                - generic [ref=e188]:
+                  - paragraph [ref=e189]: Needs info
+                  - paragraph [ref=e190]: The honest answer is not known yet
+                - img [ref=e191]
+          - generic [ref=e193]:
+            - img [ref=e195]
+            - paragraph [ref=e198]: Responsible by construction
+            - heading "The AI does not decide whether your idea is good." [level=2] [ref=e199]:
+              - text: The AI does not decide
+              - generic [ref=e200]: whether your idea is good.
+            - paragraph [ref=e201]: Launchify reasons only from what you provide. It surfaces the hidden load-bearing claims and suggests ways to test them. You decide what evidence counts, what changes, and what happens next.
+            - generic [ref=e202]:
+              - generic [ref=e203]:
+                - img [ref=e204]
+                - text: No proceed-or-stop verdict
+              - generic [ref=e206]:
+                - img [ref=e207]
+                - text: Founder reviews every assumption
+              - generic [ref=e209]:
+                - img [ref=e210]
+                - text: Unknowns remain visibly unknown
+              - generic [ref=e212]:
+                - img [ref=e213]
+                - text: Customer evidence outranks AI confidence
+        - generic [ref=e216]:
+          - paragraph [ref=e217]: Bring the idea. Keep the decision.
+          - heading "Find the assumption that changes everything." [level=2] [ref=e218]
+          - paragraph [ref=e219]: A structured War Room session turns the story in your head into risks you can see—and evidence you can go collect.
+          - link "Enter the War Room" [ref=e221] [cursor=pointer]:
+            - /url: /auth/login
+            - text: Enter the War Room
+            - img [ref=e222]
+      - generic [ref=e225]:
+        - generic [ref=e226]:
+          - generic [ref=e227]: L
+          - generic [ref=e228]: Launchify
+        - paragraph [ref=e229]: Surfaces information. The founder decides.
+        - link "Sign in" [ref=e230] [cursor=pointer]:
+          - /url: /auth/login
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e236] [cursor=pointer]:
+    - img [ref=e237]

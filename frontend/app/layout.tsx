@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { auth0 } from "@/lib/auth0";
 
 const hankenGrotesk = Hanken_Grotesk({
   display: "swap",
@@ -59,11 +60,13 @@ export const viewport: Viewport = {
   themeColor: "#ede9e0",
 };
 
-const RootLayout = ({
+const RootLayout = async ({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
+  const session = await auth0.getSession();
+
   return (
     <html
       lang="en"
@@ -78,7 +81,7 @@ const RootLayout = ({
       <body className="h-full flex bg-background text-foreground font-sans overflow-x-auto">
         <Auth0Provider>
           <TooltipProvider delayDuration={400}>
-            <Sidebar />
+            {session ? <Sidebar /> : null}
             <main className="flex-1 min-h-screen overflow-auto min-w-0">{children}</main>
             <Toaster position="bottom-right" />
           </TooltipProvider>

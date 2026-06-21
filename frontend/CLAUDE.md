@@ -420,7 +420,7 @@ The debate transcript (chat view during rounds) transitions into the arena/map v
 
 > **Note:** The older cool-tone values (`#0a0a0f`, `#ef4444`, `#3b82f6`, `#22c55e`) were replaced in the Phase 3 design-system refresh (2026-06-18) — see `.claude/LOG.md`. The current source of truth is `globals.css` `:root` block.
 
-**Layout:** Narrow left sidebar (logo, pillar nav, idea summary card) + wide main panel (debate transcript / assumption map).
+**Layout:** Signed-out `/` is a full-width public marketing page with no sidebar mounted. The root layout checks the Auth0 session server-side; authenticated app/dashboard views render the narrow left sidebar (logo, pillar nav, idea summary card) + wide main panel. The signed-in `/` route remains the session dashboard and therefore keeps the sidebar.
 
 **Debate transcript:** Single-column chronological chat interface. Each agent has avatar, name in accent color, and message bubble with accent left border. Sequential reveal with Framer Motion. Animated typing indicator per agent while loading.
 
@@ -618,8 +618,8 @@ Without this, `GET /v1/auth/sync` returns a 400 and the user cannot be registere
 ### Phase 3 — Frontend Shell (no AI yet)
 - [x] Install deps: `@xyflow/react`, `framer-motion`, `@google/genai`, shadcn primitives
 - [x] Apply design tokens to `globals.css` + Tailwind theme *(warm palette applied in post-Phase-3 refresh — see `.claude/LOG.md`; current bg `#0f0e0c`, agent accents `#c2692a`/`#6f93c4`/`#6fa37e`)*
-- [x] Build app layout: narrow left sidebar + wide main panel in `app/layout.tsx`
-- [x] Build `app/page.tsx` landing/onboarding
+- [x] Build app layout: server-side Auth0-aware chrome — no sidebar for signed-out/public users; narrow left sidebar + wide main panel for signed-in app/dashboard views
+- [x] Build `app/page.tsx` landing/onboarding *(public branch overhauled 2026-06-21; current background experiment uses animated agent-colored SVG `BackgroundPaths`, while the approved Three.js ripple remains intact in `components/ui/shader-animation.tsx` for easy rollback; signed-in dashboard preserved)*
 - [x] Create placeholder pages: `app/launchpad/page.tsx`, `app/pitch-coach/page.tsx`
 - [x] Create empty route files: `app/war-room/page.tsx`, `app/war-room/session/[id]/page.tsx`
 
@@ -675,7 +675,7 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 - [x] Phase 0
 - [x] Phase 1 *(migration run against local Docker Postgres)*
 - [x] Phase 2 *(query layer tested via `test-db.ts`; authenticated HTTP smoke gated on Auth0 token)*
-- [x] Phase 3
+- [x] Phase 3 *(public landing refreshed with Framer Motion; current `BackgroundPaths` experiment preserves the prior ripple component for rollback; auth-aware sidebar behavior; tsc/targeted lint clean)*
 - [x] Phase 4
 - [x] Phase 5 *(code complete + DB tested; live auth E2E gated on Auth0 dashboard/env)*
 - [x] Phase 6 *(code complete: `WarRoomArena.tsx` arena + right-side round dialogue rail + timed reading intermissions + orchestration/persistence; targeted lint, tsc, and production build clean; live browser E2E still pending)*
@@ -685,6 +685,6 @@ The War Room session UI **must** match `frontend/inspo.html` visually. Read the 
 > **Next task:** Finish Phase 7's loose ends, then Phase 8. The Assumption Map is built and the web redesign has landed (`tsc` clean) — what's left is:
 > 1. **Browser-verify the full War Room:** confirm the debate keeps the roundtable beside the independently scrolling dialogue rail, round dividers are legible, both 10-second intermissions pause orchestration/skip correctly, and the responsive layout stacks cleanly. Then complete synthesis and confirm the map renders (central "The Idea" hub + spokes + non-overlapping per-agent constellations), zoom/pan work, click→panel works, and remediation visibly re-lays-out the node (legible HITL).
 > 2. Add the **pitch-ready one-liner** to `SUBMISSION.md` (the only unchecked Phase 7 item): Risk = *false confidence* → Mitigation = uncertainty-first map + "based only on what you told us" framing → HITL = *the founder validates every assumption; the AI never decides if the idea is good.*
-> 3. Then **Phase 8** — end-to-end pass (intake → debate → map → remediate → canvas persisted), the no-raw-JSON / loading-state / no-storage audit, and deploy.
+> 3. Then **Phase 8** — end-to-end pass (intake → debate → map → remediate → canvas persisted), the no-raw-JSON / loading-state / no-storage audit, confirm the landing shader on a GPU-enabled browser, and deploy.
 >
 > **To unblock live E2E (Phases 5–7):** complete the Auth0 dashboard items — paste real `AUTH0_CLIENT_ID`/`AUTH0_CLIENT_SECRET` into `frontend/.env.local` and add the Login-flow Action setting `email`/`name`/`picture` custom claims on the access token (else `GET /v1/auth/sync` 400s). See "Auth pattern" under Architectural Decisions.
