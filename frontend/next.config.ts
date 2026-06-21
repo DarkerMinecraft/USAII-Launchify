@@ -7,13 +7,18 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+    value: "camera=(self), microphone=(self), geolocation=(), browsing-topics=()",
   },
 ];
 
 const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
+  },
+  async redirects() {
+    return [
+      { source: "/favicon.ico", destination: "/icon?width=32&height=32", permanent: false },
+    ];
   },
   // Strict Mode double-invokes effects in development, which opens two
   // simultaneous Live API WebSocket connections and puts them in a fight loop.

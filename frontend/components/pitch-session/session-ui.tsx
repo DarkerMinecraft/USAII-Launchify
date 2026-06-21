@@ -72,6 +72,13 @@ export const SessionUi = () => {
     return () => track.removeEventListener('ended', handleEnded);
   }, [screenStream]);
 
+  // Prompt for microphone permission immediately on page load
+  useEffect(() => {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => stream.getTracks().forEach(t => t.stop()))
+      .catch(() => {});
+  }, []);
+
   // Connect to Gemini immediately on mount — this is a WebSocket, no media needed
   useEffect(() => {
     let cancelled = false;
@@ -153,6 +160,13 @@ export const SessionUi = () => {
       setNeedsStart(false);
     } catch (err) {
       console.error(err);
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        setError('Microphone access was denied. Check your OS microphone privacy settings (Windows Settings → Privacy → Microphone) and make sure Chrome is allowed, then reload.');
+      } else if (err instanceof DOMException && err.name === 'NotFoundError') {
+        setError('No microphone found. Connect a mic or headset and reload.');
+      } else {
+        setError('Could not start the session. Check your microphone and reload.');
+      }
     }
   };
 
