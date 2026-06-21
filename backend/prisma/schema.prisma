@@ -34,6 +34,7 @@ model WarRoomSession {
   updatedAt              DateTime         @updatedAt
   assumptions            AssumptionNode[]
   transcript             DebateMessage[]
+  advisorMessages        AdvisorMessage[]
   user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -77,4 +78,18 @@ enum NodeStatus {
   VALIDATED
   UNVALIDATED
   NEEDS_INFO
+}
+
+model AdvisorMessage {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      AdvisorRole
+  content   String
+  createdAt DateTime       @default(now())
+}
+
+enum AdvisorRole {
+  USER
+  ASSISTANT
 }
