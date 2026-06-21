@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { sendAdvisorMessage } from "@/actions/advisor";
 import { MessageList } from "@/components/strategy-room/message-list";
 import { MessageInput } from "@/components/strategy-room/message-input";
+import { DocumentPanel } from "@/components/strategy-room/document-panel";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -22,15 +23,9 @@ interface Props {
   initialDocuments: AdvisorDocument[];
 }
 
-const DocsPlaceholder = () => (
-  <div className="flex flex-col items-center justify-center h-full px-6 py-8 text-center">
-    <FileText className="w-7 h-7 text-text-faint mb-3" />
-    <p className="text-[13px] text-text-faint leading-relaxed">Documents will appear here</p>
-  </div>
-);
-
-export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages }: Props) => {
+export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages, initialDocuments }: Props) => {
   const [messages, setMessages] = useState<AdvisorMessage[]>(initialMessages);
+  const [documents, setDocuments] = useState<AdvisorDocument[]>(initialDocuments);
   const [sending, setSending] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
 
@@ -105,7 +100,12 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages }: Props
             <FileText className="w-3.5 h-3.5 text-text-faint" />
             <span className="eyebrow-sm text-text-faint">Documents</span>
           </div>
-          <DocsPlaceholder />
+          <DocumentPanel
+            sessionId={sessionId}
+            documents={documents}
+            onUpload={(doc) => setDocuments((prev) => [doc, ...prev])}
+            onDelete={(docId) => setDocuments((prev) => prev.filter((d) => d.id !== docId))}
+          />
         </aside>
       </div>
 
@@ -118,8 +118,13 @@ export const AdvisorClient = ({ sessionId, ideaSummary, initialMessages }: Props
               Documents
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1">
-            <DocsPlaceholder />
+          <div className="flex-1 overflow-hidden">
+            <DocumentPanel
+              sessionId={sessionId}
+              documents={documents}
+              onUpload={(doc) => setDocuments((prev) => [doc, ...prev])}
+              onDelete={(docId) => setDocuments((prev) => prev.filter((d) => d.id !== docId))}
+            />
           </div>
         </SheetContent>
       </Sheet>

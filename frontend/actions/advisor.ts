@@ -3,7 +3,7 @@
 import { GeminiError, callGeminiChat, embedText } from "@/lib/gemini";
 import { buildAdvisorSystemPrompt } from "@/prompts/advisor";
 import { forwardToBackend, ensureUserSynced, BackendAuthError, BackendError } from "@/lib/backend";
-import type { SessionData, AdvisorData } from "@/lib/types";
+import type { SessionData, AdvisorData, AdvisorDocument } from "@/lib/types";
 
 class ActionAuthError extends Error {}
 class ActionError extends Error {}
@@ -71,6 +71,46 @@ export const sendAdvisorMessage = async (
   } catch (err) {
     if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     if (err instanceof GeminiError) throw new ActionError("AI advisor is temporarily unavailable");
+    return handleBackendError(err);
+  }
+};
+
+export const uploadDocument = async (
+  sessionId: string,
+  formData: FormData,
+): Promise<AdvisorDocument> => {
+  try {
+    await ensureUserSynced();
+    const result = await forwardToBackend<{
+      documentId: string;
+      chunkCount: number;
+      filename: string;
+      chunks: string[];
+    }>(`/v1/sessions/${sessionId}/advisor/documents`, { method: "POST", data: formData });
+
+    // Embed chunks non-blocking so RAG search works immediately after upload
+    void embedDocumentChunks(sessionId, result.documentId, result.chunks);
+
+    return {
+      id: result.documentId,
+      filename: result.filename,
+      uploadedAt: new Date().toISOString(),
+      chunkCount: result.chunkCount,
+    };
+  } catch (err) {
+    if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
+    return handleBackendError(err);
+  }
+};
+
+export const deleteDocument = async (sessionId: string, documentId: string): Promise<void> => {
+  try {
+    await ensureUserSynced();
+    await forwardToBackend(`/v1/sessions/${sessionId}/advisor/documents/${documentId}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    if (err instanceof ActionAuthError || err instanceof ActionError) throw err;
     return handleBackendError(err);
   }
 };
