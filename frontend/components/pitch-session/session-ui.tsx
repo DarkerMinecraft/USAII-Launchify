@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
-  PhoneOff, Loader2, MessageSquare, Maximize2, X,
-  MicIcon, VideoIcon, AlertTriangle,
+  PhoneOff, Loader2, MessageSquare, Maximize2, X, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
@@ -27,12 +26,7 @@ interface FeedbackEntry {
   round: number;
 }
 
-// 'allow'      → initial screen, browser popup not yet triggered
-// 'requesting' → getUserMedia in-flight, waiting for user to respond to popup
-// 'denied'     → mic explicitly blocked
-// 'no-device'  → no mic found
-// 'ready'      → mic (at minimum) granted, session can start
-type PermPhase = 'allow' | 'requesting' | 'denied' | 'no-device' | 'ready';
+type PermPhase = 'allow' | 'ready';
 
 const formatTimestamp = (ms: number) =>
   new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -148,57 +142,13 @@ export const SessionUi = () => {
     setCamPos({ x: window.innerWidth - w - 16, y: window.innerHeight - h - 80 });
   };
 
-  // Request mic + camera. Called both from "Allow Access" button and "Try again".
-  const handleRequestPermissions = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Your browser does not support microphone access. Use Chrome, Edge, or Safari over HTTPS.');
-      return;
-    }
-
-    setPermPhase('requesting');
-
-    // Try mic + camera together first
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      stream.getTracks().forEach(t => t.stop());
-      setCameraGranted(true);
-      setPermPhase('ready');
-      return;
-    } catch (err) {
-      // Camera may have been denied — fall through to mic-only
-      if (!(err instanceof DOMException) || err.name === 'NotFoundError') {
-        // Hard failure — don't silently retry with mic-only
-        handleMediaError(err);
-        return;
-      }
-    }
-
-    // Try mic alone (camera was blocked or unavailable)
+  const handleEnableMic = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
-      setCameraGranted(false);
       setPermPhase('ready');
     } catch (err) {
-      handleMediaError(err);
-    }
-  };
-
-  const handleMediaError = (err: unknown) => {
-    if (err instanceof DOMException) {
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setPermPhase('denied');
-      } else if (err.name === 'NotFoundError') {
-        setPermPhase('no-device');
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setPermPhase('allow');
-        setError('Microphone is in use by another app. Close it and try again.');
-      } else {
-        setPermPhase('allow');
-        setError(`Could not access media: ${err.message}`);
-      }
-    } else {
-      setPermPhase('allow');
+      console.error(err);
     }
   };
 
@@ -207,18 +157,15 @@ export const SessionUi = () => {
     if (!client) return;
     try {
       await client.startAudioCapture();
-      if (cameraGranted) {
-        try {
-          const stream = await client.startCameraShare('user');
-          setCameraStream(stream);
-          setIsCameraOn(true);
-          initCamPos();
-        } catch { /* camera is optional */ }
-      }
+      try {
+        const stream = await client.startCameraShare('user');
+        setCameraStream(stream);
+        setIsCameraOn(true);
+        initCamPos();
+      } catch { /* camera is optional */ }
       setNeedsStart(false);
     } catch (err) {
-      // Permissions revoked between grant and start — re-request
-      handleMediaError(err);
+      console.error(err);
     }
   };
 
@@ -294,97 +241,24 @@ export const SessionUi = () => {
 
   // ── Full-screen permission states ───────────────────────────────────────────
 
-  if (permPhase === 'allow' || permPhase === 'requesting') {
-    return (
-      <div className="h-dvh flex flex-col bg-zinc-950 text-white">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <span className="font-semibold text-base tracking-tight">Launchify Pitch Session</span>
-          <div className="flex items-center gap-2">
-            {sessionState === 'connecting' || sessionState === 'reconnecting'
-              ? <Loader2 className="w-4 h-4 animate-spin text-yellow-400" />
-              : <span className={`w-2.5 h-2.5 rounded-full ${statusColor}`} />
-            }
-            <span className="text-sm text-white/60">{statusLabel}</span>
-          </div>
-        </header>
-
-        <div className="flex-1 flex flex-col items-center justify-center gap-7 px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center">
-            <Mic className="w-7 h-7 text-white/70" />
-          </div>
-
-          <div className="space-y-2 max-w-xs">
-            <h2 className="text-xl font-semibold">Allow microphone access</h2>
-            <p className="text-white/50 text-sm leading-relaxed">
-              Pitch Session needs your microphone to listen to your pitch. Camera access is optional and enables delivery coaching.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2.5 text-sm text-white/50 w-full max-w-[200px]">
-            <div className="flex items-center gap-3">
-              <MicIcon className="w-4 h-4 shrink-0 text-white/30" />
-              <span>Microphone <span className="text-white/25 text-xs">(required)</span></span>
-            </div>
-            <div className="flex items-center gap-3">
-              <VideoIcon className="w-4 h-4 shrink-0 text-white/30" />
-              <span>Camera <span className="text-white/25 text-xs">(optional)</span></span>
-            </div>
-          </div>
-
-          {permPhase === 'requesting' ? (
-            <div className="flex items-center gap-3 text-white/40">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Waiting for permission…</span>
-            </div>
-          ) : (
-            <Button
-              onClick={handleRequestPermissions}
-              size="lg"
-              className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full"
-            >
-              Allow Access
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (permPhase === 'denied') {
+  if (permPhase === 'allow') {
     return (
       <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 px-6 text-center">
-        <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-400/40 flex items-center justify-center">
-          <MicOff className="w-6 h-6 text-red-400" />
+        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center">
+          <Mic className="w-7 h-7 text-white/70" />
         </div>
         <div className="space-y-2 max-w-xs">
-          <p className="font-semibold text-lg">Microphone access blocked</p>
+          <h2 className="text-xl font-semibold">Enable Microphone</h2>
           <p className="text-white/50 text-sm leading-relaxed">
-            Click the <strong className="text-white/70">lock icon</strong> in your browser&apos;s address bar, set <strong className="text-white/70">Microphone</strong> to <strong className="text-white/70">Allow</strong>, then click Try Again below.
+            Allow microphone access to start your pitch session. Camera is optional.
           </p>
         </div>
         <Button
-          onClick={handleRequestPermissions}
-          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-6 h-auto py-2.5 rounded-full"
+          onClick={handleEnableMic}
+          size="lg"
+          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full"
         >
-          Try Again
-        </Button>
-      </div>
-    );
-  }
-
-  if (permPhase === 'no-device') {
-    return (
-      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-5 px-6 text-center">
-        <AlertTriangle className="w-8 h-8 text-yellow-400" />
-        <div className="space-y-2 max-w-xs">
-          <p className="font-semibold text-lg">No microphone found</p>
-          <p className="text-white/50 text-sm">Connect a microphone or headset, then click Try Again.</p>
-        </div>
-        <Button
-          onClick={handleRequestPermissions}
-          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-6 h-auto py-2.5 rounded-full"
-        >
-          Try Again
+          Enable Microphone
         </Button>
       </div>
     );
