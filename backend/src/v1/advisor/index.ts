@@ -135,6 +135,7 @@ router.post("/documents", upload.single("file"), async (req: Request<{ id: strin
     }
 
     if (!text.trim()) {
+      await deleteFromS3(s3Key);
       await prisma.sessionDocument.delete({ where: { id: doc.id } });
       return res.status(422).json({ error: "no_text_extracted" });
     }
