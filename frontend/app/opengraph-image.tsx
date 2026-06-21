@@ -69,6 +69,24 @@ export default async function OgImage() {
         >
           AI Startup Co-Pilot
         </div>
+
+        {/* CTA */}
+        <div
+          style={{
+            marginTop: 12,
+            background: "#ede9e0",
+            borderRadius: 10,
+            padding: "14px 30px",
+            fontFamily: "Spectral",
+            fontWeight: 700,
+            fontSize: 20,
+            color: "#0f0e0c",
+            letterSpacing: "0.01em",
+            lineHeight: 1,
+          }}
+        >
+          Stress-test your idea →
+        </div>
       </div>
     ),
     {
