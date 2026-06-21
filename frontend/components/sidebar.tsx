@@ -13,7 +13,8 @@ const pillars = [
     icon: Swords,
     locked: false,
     description: "Challenge your idea",
-    accentColor: "#c2692a",
+    dotActiveClass: "bg-agent-skeptic shadow-[0_0_8px_var(--agent-skeptic)]",
+    descActiveClass: "text-agent-skeptic",
   },
   {
     label: "Launchpad",
@@ -21,7 +22,8 @@ const pillars = [
     icon: Rocket,
     locked: false,
     description: "Connect & execute",
-    accentColor: "#6fa37e",
+    dotActiveClass: "bg-agent-operator shadow-[0_0_8px_var(--agent-operator)]",
+    descActiveClass: "text-agent-operator",
   },
   {
     label: "Pitch Session",
@@ -29,7 +31,8 @@ const pillars = [
     icon: Mic,
     locked: false,
     description: "Practice & perform",
-    accentColor: "#6f93c4",
+    dotActiveClass: "bg-agent-strategist shadow-[0_0_8px_var(--agent-strategist)]",
+    descActiveClass: "text-agent-strategist",
   },
 ];
 
@@ -38,16 +41,11 @@ export const Sidebar = () => {
   const { user, isLoading } = useUser();
 
   return (
-    <aside
-      className="flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border"
-    >
+    <aside className="hidden md:flex flex-col w-[232px] shrink-0 h-screen sticky top-0 bg-surface-1 border-r border-border">
       {/* Logo */}
       <div className="px-5 py-6 border-b border-hairline">
         <Link href="/" className="flex items-center gap-3 group">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground"
-            style={{ boxShadow: "0 4px 12px -4px rgba(0,0,0,0.5)" }}
-          >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-serif font-bold text-base bg-primary text-primary-foreground shadow-[0_4px_12px_-4px_rgba(0,0,0,0.5)]">
             L
           </div>
           <div className="flex flex-col gap-0.5">
@@ -67,7 +65,7 @@ export const Sidebar = () => {
           The Three Pillars
         </p>
 
-        {pillars.map(({ label, href, icon: Icon, locked, description, accentColor }) => {
+        {pillars.map(({ label, href, icon: Icon, locked, description, dotActiveClass, descActiveClass }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -83,24 +81,9 @@ export const Sidebar = () => {
               tabIndex={locked ? -1 : undefined}
             >
               {isActive ? (
-                <div
-                  className="shrink-0 rounded-full"
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    background: accentColor,
-                    boxShadow: `0 0 8px ${accentColor}`,
-                  }}
-                />
+                <div className={cn("shrink-0 rounded-full w-[7px] h-[7px]", dotActiveClass)} />
               ) : (
-                <div
-                  className="shrink-0 rounded-full"
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    border: "1px solid #3a3833",
-                  }}
-                />
+                <div className="shrink-0 rounded-full w-[7px] h-[7px] border border-[#3a3833]" />
               )}
 
               <div className="flex-1 min-w-0">
@@ -113,13 +96,10 @@ export const Sidebar = () => {
                   {label}
                   {locked && <Lock className="w-2.5 h-2.5 text-text-faint" aria-label="Locked" />}
                 </div>
-                <div
-                  className="mt-0.5 truncate font-mono uppercase text-[9px] text-text-faint"
-                  style={{
-                    letterSpacing: "0.08em",
-                    color: isActive ? accentColor : undefined,
-                  }}
-                >
+                <div className={cn(
+                  "mt-0.5 truncate font-mono uppercase text-[9px] tracking-[0.08em]",
+                  isActive ? descActiveClass : "text-text-faint"
+                )}>
                   {description}
                 </div>
               </div>

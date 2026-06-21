@@ -6,6 +6,7 @@ import { ArrowRight, Loader2, RotateCw, AlertTriangle, Lock } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import type {
   AgentRole,
   AssumptionNode,
@@ -37,12 +38,37 @@ const ROUND_NAMES: Record<1 | 2 | 3, string> = {
 
 const AGENT_META: Record<
   AgentRole,
-  { name: string; verb: string; base: string; ring: string; text: string; fill: string; cx: number; cy: number; r: number; }
+  {
+    name: string; verb: string; base: string; ring: string; text: string; fill: string;
+    cx: number; cy: number; r: number;
+    textClass: string; topBorderClass: string; dotClass: string;
+  }
 > = {
-  SKEPTIC: { name: "The Skeptic", verb: "CHALLENGES", base: "#c2692a", ring: "#c2692a", text: "#c2692a", fill: "rgba(194,105,42,0.15)", cx: 600, cy: 190, r: 34 },
-  STRATEGIST: { name: "The Strategist", verb: "REFRAMES", base: "#3a5a8a", ring: "#5a7db0", text: "#6f93c4", fill: "rgba(58,90,138,0.18)", cx: 250, cy: 430, r: 34 },
-  OPERATOR: { name: "The Operator", verb: "GROUNDS", base: "#4a7c59", ring: "#4a7c59", text: "#6fa37e", fill: "rgba(74,124,89,0.18)", cx: 950, cy: 430, r: 34 },
+  SKEPTIC: {
+    name: "The Skeptic", verb: "CHALLENGES",
+    base: "#c2692a", ring: "#c2692a", text: "#c2692a", fill: "rgba(194,105,42,0.15)",
+    cx: 600, cy: 190, r: 34,
+    textClass: "text-agent-skeptic", topBorderClass: "border-t-agent-skeptic", dotClass: "bg-agent-skeptic",
+  },
+  STRATEGIST: {
+    name: "The Strategist", verb: "REFRAMES",
+    base: "#3a5a8a", ring: "#5a7db0", text: "#6f93c4", fill: "rgba(58,90,138,0.18)",
+    cx: 250, cy: 430, r: 34,
+    textClass: "text-agent-strategist", topBorderClass: "border-t-[#3a5a8a]", dotClass: "bg-[#3a5a8a]",
+  },
+  OPERATOR: {
+    name: "The Operator", verb: "GROUNDS",
+    base: "#4a7c59", ring: "#4a7c59", text: "#6fa37e", fill: "rgba(74,124,89,0.18)",
+    cx: 950, cy: 430, r: 34,
+    textClass: "text-agent-operator", topBorderClass: "border-t-[#4a7c59]", dotClass: "bg-[#4a7c59]",
+  },
 };
+
+const THINK_DOT_DELAYS = [
+  "[animation:thinkDot_1.2s_0s_infinite_ease-in-out]",
+  "[animation:thinkDot_1.2s_0.15s_infinite_ease-in-out]",
+  "[animation:thinkDot_1.2s_0.3s_infinite_ease-in-out]",
+] as const;
 
 type Phase = "loading" | "debating" | "synthesizing" | "ready" | "error";
 type ErrorKind = "load" | "turn" | "synth";
@@ -229,7 +255,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
     return (
       <Stage>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 py-24">
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#c2692a" }} />
+          <Loader2 className="h-5 w-5 animate-spin text-agent-skeptic" />
           <p className="eyebrow font-mono">Convening the room…</p>
         </div>
       </Stage>
@@ -240,11 +266,11 @@ export const WarRoomArena = ({ id }: { id: string }) => {
     return (
       <Stage>
         <div className="flex flex-1 flex-col items-center justify-center gap-5 py-24 text-center">
-          <AlertTriangle className="h-6 w-6" style={{ color: "#c2692a" }} />
-          <p className="font-serif italic" style={{ fontSize: "22px", color: "#ede9e0" }}>
+          <AlertTriangle className="h-6 w-6 text-agent-skeptic" />
+          <p className="font-serif italic text-[22px] text-foreground">
             We couldn&apos;t load this session.
           </p>
-          <p style={{ fontSize: "14px", color: "#9a958c", maxWidth: "26rem" }}>{error}</p>
+          <p className="text-[14px] text-text-muted max-w-[26rem]">{error}</p>
           <RetryButton label="Try again" onClick={() => void init()} />
         </div>
       </Stage>
@@ -269,7 +295,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
           </motion.div>
         ) : (
           <motion.div key="debate" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.7 }} className="flex flex-1 flex-col">
-            <div className="mx-auto w-full max-w-3xl px-8 pt-10 pb-2">
+            <div className="mx-auto w-full max-w-3xl px-4 sm:px-8 pt-6 sm:pt-10 pb-2">
               <div className="flex items-center gap-3">
                 <RoundStepper current={stepperRound} />
                 <span className="eyebrow font-mono">
@@ -277,7 +303,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
                 </span>
               </div>
               {ideaSummary && (
-                <p className="mt-3 font-mono" style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5a574f" }}>
+                <p className="mt-3 font-mono text-[10px] tracking-[0.12em] uppercase text-text-faint">
                   War Room · {truncate(ideaSummary, 88)}
                 </p>
               )}
@@ -285,11 +311,11 @@ export const WarRoomArena = ({ id }: { id: string }) => {
 
             <Arena activeAgent={phase === "debating" ? activeAgent : null} />
 
-            <div className="mx-auto w-full max-w-3xl px-8 pt-2 pb-1">
+            <div className="mx-auto w-full max-w-3xl px-4 sm:px-8 pt-2 pb-1">
               <Progress value={Math.round((messages.length / 9) * 100)} className="h-[2px] bg-surface-3 [&>[data-slot=progress-indicator]]:bg-agent-skeptic" />
             </div>
 
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-8 pb-16 pt-2">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-4 sm:px-8 pb-16 pt-2">
               {messages.map((m, i) => (
                 <MessageBubble key={`${m.agent}-${m.round}-${i}`} message={m} />
               ))}
@@ -318,7 +344,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
               )}
 
               {persistWarned && phase !== "error" && (
-                <p className="font-mono" style={{ fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a574f" }}>
+                <p className="font-mono text-[10px] tracking-[0.08em] uppercase text-text-faint">
                   Note · the debate is running but progress isn&apos;t being saved.
                 </p>
               )}
@@ -333,7 +359,7 @@ export const WarRoomArena = ({ id }: { id: string }) => {
 };
 
 const Stage = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex min-h-screen flex-col" style={{ background: "var(--war-room-bg)" }}>
+  <div className="flex min-h-screen flex-col bg-war-room-bg">
     {children}
   </div>
 );
@@ -342,7 +368,7 @@ const Arena = ({ activeAgent }: { activeAgent: AgentRole | null }) => {
   const nodes = (Object.keys(AGENT_META) as AgentRole[]).map((role) => ({ role, ...AGENT_META[role] }));
 
   return (
-    <div className="mx-auto w-full max-w-[820px] px-8">
+    <div className="mx-auto w-full max-w-[820px] px-1 sm:px-8">
       <svg viewBox="0 0 1200 800" width="1200" height="800" className="block w-full" role="img" aria-label="War Room debate arena — three AI advisors positioned around a central debate floor">
         <defs>
           <radialGradient id="overhead" cx="50%" cy="34%" r="46%">
@@ -364,18 +390,24 @@ const Arena = ({ activeAgent }: { activeAgent: AgentRole | null }) => {
           return (
             <g key={n.role}>
               {active && (
-                <circle cx={n.cx} cy={n.cy} r={n.r + 4} fill="none" stroke={n.ring} strokeWidth={6}
-                  style={{ filter: "blur(7px)", animation: "arenaGlow 1.8s ease-in-out infinite" }} />
+                <circle
+                  cx={n.cx} cy={n.cy} r={n.r + 4}
+                  fill="none" stroke={n.ring} strokeWidth={6}
+                  className="blur-[7px] [animation:arenaGlow_1.8s_ease-in-out_infinite]"
+                />
               )}
-              <circle cx={n.cx} cy={n.cy} r={n.r} fill={n.fill} stroke={n.ring} strokeWidth={5}
-                style={{
-                  filter: active ? `drop-shadow(0 0 12px ${n.ring})` : "none",
-                  transition: "filter .4s ease",
-                  opacity: activeAgent && !active ? 0.55 : 1,
-                }} />
-              <text x={n.cx} y={n.cy + n.r + 30} textAnchor="middle" fill={n.text}
+              <circle
+                cx={n.cx} cy={n.cy} r={n.r}
+                fill={n.fill} stroke={n.ring} strokeWidth={5}
+                className={cn("transition-[filter,opacity] duration-[400ms]", activeAgent && !active ? "opacity-[0.55]" : "opacity-100")}
+                style={{ filter: active ? `drop-shadow(0 0 12px ${n.ring})` : "none" }}
+              />
+              <text
+                x={n.cx} y={n.cy + n.r + 30}
+                textAnchor="middle" fill={n.text}
                 fontFamily="var(--font-serif), Georgia, serif" fontStyle="italic" fontSize="20"
-                style={{ opacity: activeAgent && !active ? 0.6 : 1 }}>
+                className={activeAgent && !active ? "opacity-60" : "opacity-100"}
+              >
                 {n.name}
               </text>
               <text x={n.cx} y={n.cy + n.r + 50} textAnchor="middle" fill="#5a574f"
@@ -403,11 +435,10 @@ const RoundStepper = ({ current }: { current: 1 | 2 | 3 }) => (
     {([1, 2, 3] as const).map((r) => (
       <span
         key={r}
-        style={{
-          width: "26px", height: "5px", borderRadius: "3px",
-          background: r < current ? "#8a7a6a" : r === current ? "#ede9e0" : "#2e2c28",
-          transition: "background .3s ease",
-        }}
+        className={cn(
+          "inline-block w-[26px] h-[5px] rounded-[3px] transition-colors duration-300",
+          r < current ? "bg-[#8a7a6a]" : r === current ? "bg-foreground" : "bg-border"
+        )}
       />
     ))}
   </div>
@@ -420,16 +451,15 @@ const MessageBubble = ({ message }: { message: DebateMessage }) => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
-      style={{
-        background: "#1c1a16", border: "1px solid #38332b",
-        borderTop: `2px solid ${meta.base}`, borderRadius: "13px",
-        padding: "15px 18px", boxShadow: "0 20px 50px -20px rgba(0,0,0,0.8)",
-      }}
+      className={cn(
+        "bg-surface-4 border border-border-strong rounded-[13px] px-[18px] py-[15px] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] border-t-2",
+        meta.topBorderClass
+      )}
     >
-      <div className="font-mono" style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: meta.text, marginBottom: "8px" }}>
+      <div className={cn("font-mono text-[10px] tracking-[0.12em] uppercase mb-2", meta.textClass)}>
         {meta.name} · Round {message.round}
       </div>
-      <p className="font-serif" style={{ fontSize: "15px", lineHeight: 1.55, color: "#ede9e0", whiteSpace: "pre-wrap", margin: 0 }}>
+      <p className="font-serif text-[15px] leading-[1.55] text-foreground whitespace-pre-wrap m-0">
         {message.content}
       </p>
     </motion.div>
@@ -443,25 +473,25 @@ const TypingBubble = ({ agent, round }: { agent: AgentRole; round: 1 | 2 | 3 }) 
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{ background: "#1c1a16", border: "1px solid #38332b", borderTop: `2px solid ${meta.base}`, borderRadius: "13px", padding: "15px 18px" }}
+      className={cn(
+        "bg-surface-4 border border-border-strong rounded-[13px] px-[18px] py-[15px] border-t-2",
+        meta.topBorderClass
+      )}
     >
-      <div className="font-mono" style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: meta.text, marginBottom: "10px" }}>
+      <div className={cn("font-mono text-[10px] tracking-[0.12em] uppercase mb-[10px]", meta.textClass)}>
         {meta.name} · Round {round}
       </div>
-      <ThinkDots color={meta.text} />
+      <ThinkDots colorClass={meta.dotClass} />
     </motion.div>
   );
 };
 
-const ThinkDots = ({ color }: { color: string }) => (
+const ThinkDots = ({ colorClass }: { colorClass: string }) => (
   <div className="flex items-center gap-1.5" aria-label="thinking">
-    {[0, 1, 2].map((i) => (
+    {([0, 1, 2] as const).map((i) => (
       <span
         key={i}
-        style={{
-          width: "6px", height: "6px", borderRadius: "50%", background: color,
-          animation: `thinkDot 1.2s ${i * 0.15}s infinite ease-in-out`,
-        }}
+        className={cn("w-[6px] h-[6px] rounded-full", colorClass, THINK_DOT_DELAYS[i])}
       />
     ))}
   </div>
@@ -472,14 +502,14 @@ const SynthesizingCard = () => (
     initial={{ opacity: 0, y: 12 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.4 }}
-    style={{ background: "#16140f", border: "1px solid #38332b", borderRadius: "13px", padding: "18px 22px" }}
+    className="bg-well border border-border-strong rounded-[13px] px-[22px] py-[18px]"
   >
-    <div className="font-mono" style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a7670", marginBottom: "10px" }}>
+    <div className="font-mono text-[10px] tracking-[0.14em] uppercase text-text-dim mb-[10px]">
       Synthesis
     </div>
     <div className="flex items-center gap-3">
-      <ThinkDots color="#b8b2a7" />
-      <span className="font-serif italic" style={{ fontSize: "15px", color: "#b8b2a7" }}>
+      <ThinkDots colorClass="bg-text-soft" />
+      <span className="font-serif italic text-[15px] text-text-soft">
         Reading all three rounds to surface your key assumptions…
       </span>
     </div>
