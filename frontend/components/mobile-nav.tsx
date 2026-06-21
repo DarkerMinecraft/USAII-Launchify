@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Swords, Rocket, Mic, LogIn, LogOut } from "lucide-react";
+import { Swords, Rocket, Mic, BrainCircuit, LogIn, LogOut } from "lucide-react";
 import { useUser } from "@auth0/nextjs-auth0";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,13 @@ const pillars = [
     label: "Pitch",
     href: "/pitch-session",
     icon: Mic,
+    activeBarClass: "bg-agent-strategist",
+    activeTextClass: "text-agent-strategist",
+  },
+  {
+    label: "Strategy",
+    href: "/strategy-room",
+    icon: BrainCircuit,
     activeBarClass: "bg-agent-strategist",
     activeTextClass: "text-agent-strategist",
   },

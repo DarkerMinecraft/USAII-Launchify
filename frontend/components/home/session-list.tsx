@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Loader2, AlertTriangle, CheckCircle, Clock,
-  Trash2, Target, X,
+  Trash2, Target, X, BrainCircuit,
 } from "lucide-react";
 import { listSessions, deleteSession } from "@/actions/sessions";
 import { Button } from "@/components/ui/button";
@@ -159,6 +159,25 @@ export const SessionList = () => {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Open Launchpad</TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {s.status === "COMPLETE" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Open Strategy Room"
+                            className="text-agent-strategist bg-[rgba(111,147,193,0.1)] border border-[rgba(111,147,193,0.25)] hover:bg-[rgba(111,147,193,0.2)] hover:border-[rgba(111,147,193,0.5)]"
+                            asChild
+                          >
+                            <Link href={`/strategy-room?sessionId=${s.id}`}>
+                              <BrainCircuit className="w-[11px] h-[11px]" aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Open Strategy Room</TooltipContent>
                       </Tooltip>
                     )}
 
