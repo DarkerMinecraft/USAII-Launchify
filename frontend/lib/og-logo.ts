@@ -1,14 +1,14 @@
 import type { ReactElement } from "react";
+import type { FontResult } from "@/lib/og-fonts";
 
 /**
  * Returns the JSX element used by ImageResponse for every icon size.
- * fontFamily falls back to Georgia when Spectral fails to load.
  */
 export function logoMark(
   size: number,
   radius: number,
   fontSize: number,
-  font: ArrayBuffer | null,
+  font: FontResult,
 ): ReactElement {
   return {
     type: "div",
@@ -21,7 +21,7 @@ export function logoMark(
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontFamily: font ? "Spectral" : "Georgia, serif",
+        fontFamily: font.name,
         fontWeight: 700,
         fontSize,
         color: "#0f0e0c",

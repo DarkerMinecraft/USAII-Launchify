@@ -15,13 +15,13 @@ export async function GET(req: NextRequest) {
     return new Response("Invalid size — use 192 or 512", { status: 400 });
   }
 
-  const radius = Math.round(size * 0.213); // ~same ratio as rounded-lg on 32px
+  const radius = Math.round(size * 0.213);
   const fontSize = Math.round(size * 0.625);
   const font = await spectralBold();
 
   return new ImageResponse(logoMark(size, radius, fontSize, font), {
     width: size,
     height: size,
-    fonts: font ? [{ name: "Spectral", data: font, weight: 700, style: "normal" }] : [],
+    fonts: [{ name: font.name, data: font.data, weight: 700, style: "normal" }],
   });
 }

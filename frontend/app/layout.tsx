@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Spectral, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Auth0Provider } from "@auth0/nextjs-auth0";
 import "./globals.css";
@@ -53,6 +53,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+export const viewport: Viewport = {
   themeColor: "#ede9e0",
 };
 
