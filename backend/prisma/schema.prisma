@@ -20,23 +20,23 @@ model User {
 }
 
 model WarRoomSession {
-  id                     String              @id @default(cuid())
+  id                     String            @id @default(cuid())
   userId                 String
   ideaSummary            String
   questionnaireResponses Json
   canvas                 Json?
-  status                 SessionStatus       @default(IN_PROGRESS)
+  status                 SessionStatus     @default(IN_PROGRESS)
   outreachDraft          Json?
   executiveSummary       Json?
   validationRoadmap      Json?
   marketResearch         Json?
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  advisorMessages        AdvisorMessage[]
   assumptions            AssumptionNode[]
   transcript             DebateMessage[]
-  advisorMessages        AdvisorMessage[]
   documents              SessionDocument[]
-  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DebateMessage {
@@ -64,6 +64,36 @@ model AssumptionNode {
   session     WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
+model AdvisorMessage {
+  id        String         @id @default(cuid())
+  sessionId String
+  role      AdvisorRole
+  content   String
+  createdAt DateTime       @default(now())
+  session   WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SessionDocument {
+  id         String          @id @default(cuid())
+  sessionId  String
+  filename   String
+  s3Key      String
+  uploadedAt DateTime        @default(now())
+  chunks     DocumentChunk[]
+  session    WarRoomSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model DocumentChunk {
+  id         String                 @id @default(cuid())
+  documentId String
+  content    String
+  chunkIndex Int
+  embedding  Unsupported("vector")?
+  document   SessionDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([embedding], map: "DocumentChunk_embedding_hnsw_idx")
+}
+
 enum SessionStatus {
   IN_PROGRESS
   COMPLETE
@@ -81,34 +111,7 @@ enum NodeStatus {
   NEEDS_INFO
 }
 
-model AdvisorMessage {
-  id        String         @id @default(cuid())
-  sessionId String
-  session   WarRoomSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  role      AdvisorRole
-  content   String
-  createdAt DateTime       @default(now())
-}
-
 enum AdvisorRole {
   USER
   ASSISTANT
-}
-
-model SessionDocument {
-  id         String          @id @default(cuid())
-  sessionId  String
-  session    WarRoomSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  filename   String
-  s3Key      String
-  uploadedAt DateTime        @default(now())
-  chunks     DocumentChunk[]
-}
-
-model DocumentChunk {
-  id         String          @id @default(cuid())
-  documentId String
-  document   SessionDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  content    String
-  chunkIndex Int
 }
