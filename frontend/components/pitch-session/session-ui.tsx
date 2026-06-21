@@ -8,7 +8,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { GeminiLiveClient, type SessionState } from '@/lib/gemini-live-client';
 import { getGeminiToken } from '@/actions/gemini';
-import { checkPermission, PermissionType } from 'browser-permissions-helper';
 
 let _activeClient: GeminiLiveClient | null = null;
 
@@ -27,16 +26,11 @@ interface FeedbackEntry {
   round: number;
 }
 
-type PermPhase = 'allow' | 'ready';
 
 const formatTimestamp = (ms: number) =>
   new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export const SessionUi = () => {
-  const [permPhase, setPermPhase]       = useState<PermPhase>('allow');
-  const [micPending, setMicPending]     = useState(false);
-  const [micError, setMicError]         = useState<string | null>(null);
-  const [cameraGranted, setCameraGranted] = useState(false);
   const [sessionState, setSessionState] = useState<SessionState>('connecting');
   const [isMuted, setIsMuted]           = useState(false);
   const [isCameraOn, setIsCameraOn]     = useState(false);
@@ -77,13 +71,6 @@ export const SessionUi = () => {
     track.addEventListener('ended', handleEnded);
     return () => track.removeEventListener('ended', handleEnded);
   }, [screenStream]);
-
-  // Proactively check mic permission on mount — skip the permission screen if already granted
-  useEffect(() => {
-    checkPermission(PermissionType.Microphone).then(status => {
-      if (status === 'granted') setPermPhase('ready');
-    }).catch(() => { /* Permissions API unavailable — user must click the button */ });
-  }, []);
 
   // Connect to Gemini immediately on mount — this is a WebSocket, no media needed
   useEffect(() => {
@@ -150,37 +137,6 @@ export const SessionUi = () => {
     if (camPos) return;
     const { w, h } = CAM_SIZES[size];
     setCamPos({ x: window.innerWidth - w - 16, y: window.innerHeight - h - 80 });
-  };
-
-  const handleEnableMic = async () => {
-    setMicError(null);
-    setMicPending(true);
-    try {
-      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-        setMicError('Microphone access requires HTTPS. Make sure you are on a secure connection.');
-        return;
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
-      setPermPhase('ready');
-    } catch (err) {
-      console.error(err);
-      if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        const status = await checkPermission(PermissionType.Microphone).catch(() => 'prompt' as const);
-        setMicError(
-          status === 'denied'
-            ? 'Microphone is blocked in your browser settings. Click the lock icon → Site settings → Microphone → Allow, then reload the page.'
-            : 'Microphone access was denied. Please allow microphone access when the browser prompts you.'
-        );
-      } else if (err instanceof DOMException && err.name === 'NotFoundError') {
-        setMicError('No microphone found. Connect a mic or headset and try again.');
-      } else {
-        setMicError('Could not access microphone. Check your browser settings and try again.');
-      }
-    } finally {
-      setMicPending(false);
-    }
   };
 
   const handleStart = async () => {
@@ -270,38 +226,8 @@ export const SessionUi = () => {
     );
   }
 
-  // ── Full-screen permission states ───────────────────────────────────────────
 
-  if (permPhase === 'allow') {
-    return (
-      <div className="h-dvh flex flex-col items-center justify-center bg-zinc-950 text-white gap-6 px-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center">
-          {micPending ? <Loader2 className="w-7 h-7 text-white/50 animate-spin" /> : <Mic className="w-7 h-7 text-white/70" />}
-        </div>
-        <div className="space-y-2 max-w-xs">
-          <h2 className="text-xl font-semibold">Enable Microphone</h2>
-          <p className="text-white/50 text-sm leading-relaxed">
-            {micPending
-              ? 'Waiting for permission — check your browser for a popup.'
-              : 'Allow microphone access to start your pitch session. Camera is optional.'}
-          </p>
-          {micError && (
-            <p className="text-red-400 text-sm leading-relaxed pt-1">{micError}</p>
-          )}
-        </div>
-        <Button
-          onClick={handleEnableMic}
-          disabled={micPending}
-          size="lg"
-          className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full disabled:opacity-50"
-        >
-          {micPending ? 'Waiting…' : micError ? 'Try Again' : 'Enable Microphone'}
-        </Button>
-      </div>
-    );
-  }
-
-  // ── Active session UI (permPhase === 'ready') ───────────────────────────────
+  // ── Active session UI ───────────────────────────────────────────────────────
 
   const { w: camW, h: camH } = CAM_SIZES[camSize];
 
@@ -341,9 +267,7 @@ export const SessionUi = () => {
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold">Ready to practice?</h2>
               <p className="text-white/50 text-sm max-w-xs">
-                {cameraGranted
-                  ? 'Your mic and camera will turn on. The AI coach will listen, watch your delivery, and give feedback.'
-                  : 'Your mic will turn on. The AI coach will listen and give feedback. (Camera not granted — delivery coaching is audio-only.)'}
+                {'Your mic and camera will turn on. The AI coach will listen, watch your delivery, and give feedback.'}
               </p>
             </div>
             <Button onClick={handleStart} size="lg" className="bg-white text-zinc-950 hover:bg-white/90 font-semibold px-8 py-3 h-auto rounded-full">
