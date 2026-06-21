@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { ReactFlow, Background, Handle, Position, type Node, type Edge, type NodeTypes } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -481,7 +481,7 @@ export const AssumptionMap = ({ sessionId, assumptions: initial, ideaSummary, qu
                 <div className="w-9 h-1 rounded-full bg-[#3a3833]" />
               </div>
               <div className="flex-1 overflow-y-auto">
-                <NodePanel node={selectedNode} onClose={() => setSelected(null)} onRemediate={handleRemediate} />
+                <NodePanel node={selectedNode} onClose={() => setSelected(null)} onReview={handleReview} onRemove={handleRemove} />
               </div>
             </motion.div>
           </>
