@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, ArrowRight, Loader2, Sparkles } from "lucide-react";
@@ -25,29 +25,28 @@ export const Questionnaire = () => {
   const [idea, setIdea] = useState("");
   const [questions, setQuestions] = useState<string[]>([]);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [generatingQuestions, startGenerating] = useTransition();
+  const [submitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const generateQuestions = async () => {
+  const generateQuestions = () => {
     if (!idea.trim()) return;
     setError(null);
-    setLoadingQuestions(true);
-    try {
-      const data = await generateQuestionsAction(idea.trim());
-      const aiQuestions: string[] = data.questions;
-      const all = [...DEFAULT_QUESTIONS, ...aiQuestions];
-      setQuestions(all);
-      setAnswers(new Array(all.length).fill(""));
-      setStage("questionnaire");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoadingQuestions(false);
-    }
+    startGenerating(async () => {
+      try {
+        const data = await generateQuestionsAction(idea.trim());
+        const aiQuestions: string[] = data.questions;
+        const all = [...DEFAULT_QUESTIONS, ...aiQuestions];
+        setQuestions(all);
+        setAnswers(new Array(all.length).fill(""));
+        setStage("questionnaire");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
+    });
   };
 
-  const submit = async () => {
+  const submit = () => {
     const qa: QA[] = questions.map((question, i) => ({
       question,
       answer: answers[i] ?? "",
@@ -59,14 +58,14 @@ export const Questionnaire = () => {
     }
 
     setError(null);
-    setSubmitting(true);
-    try {
-      const data = await createSession(idea.trim(), qa);
-      router.push(`/war-room/session/${data!.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setSubmitting(false);
-    }
+    startSubmitting(async () => {
+      try {
+        const data = await createSession(idea.trim(), qa);
+        router.push(`/war-room/session/${data!.id}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
+    });
   };
 
   return (
@@ -112,9 +111,9 @@ export const Questionnaire = () => {
 
             <div className="mt-6 flex items-center gap-4">
               <PrimaryButton
-                disabled={!idea.trim() || loadingQuestions}
+                disabled={!idea.trim() || generatingQuestions}
                 onClick={generateQuestions}
-                loading={loadingQuestions}
+                loading={generatingQuestions}
                 loadingLabel="Reading your idea…"
                 icon={<Sparkles className="w-4 h-4" />}
                 label="Generate my questions"
