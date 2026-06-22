@@ -6,7 +6,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:guardrail": "node --env-file=.env.local ../backend/node_modules/tsx/dist/cli.mjs scripts/stress-guardrail.ts",
+    "test:guardrail:quick": "node --env-file=.env.local ../backend/node_modules/tsx/dist/cli.mjs scripts/stress-guardrail.ts --quick"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.22.0",

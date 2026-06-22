@@ -2,6 +2,7 @@
 
 import { callLLM, parseJSON, GeminiParseError, LLMError } from "@/lib/llm";
 import { hasAnsweredQuestionnaire } from "@/lib/questionnaire";
+import { buildSafetyRefusal, isSafetyCategory } from "@/lib/safety-policy";
 import {
   QUESTION_GEN_PROMPT,
   SKEPTIC_SYSTEM,
@@ -24,6 +25,7 @@ import type {
   DebateMessage,
   QA,
   SafetyBlockResult,
+  SafetyCategory,
   SafetyVerdict,
 } from "@/lib/types";
 
@@ -35,33 +37,6 @@ const AGENT_SYSTEMS: Record<AgentRole, string> = {
 
 const VALID_STATUSES = new Set<AssumptionStatus>(["VALIDATED", "UNVALIDATED", "NEEDS_INFO"]);
 const VALID_AGENTS = new Set<AgentRole>(["SKEPTIC", "STRATEGIST", "OPERATOR"]);
-
-const SAFETY_CATEGORIES = {
-  ILLEGAL_GOODS_SERVICES: "illegal goods or services",
-  VIOLENCE_PHYSICAL_HARM: "violence or serious physical harm",
-  CBRN_WEAPONS: "weapons intended for mass harm",
-  EXPLOITATION_OF_PEOPLE: "the exploitation or coercion of people",
-  CHILD_SAFETY_NONCONSENSUAL_SEXUAL_CONTENT: "sexual exploitation or non-consensual abuse",
-  FRAUD_DECEPTION: "fraud or deliberate deception",
-  CYBER_HARM: "malicious cyber activity",
-  REGULATORY_EVASION: "harmful evasion of safety or professional regulation",
-  DISCRIMINATION_TARGETED_HARM: "targeted harassment, stalking, or discrimination",
-} as const;
-
-type SafetyCategory = keyof typeof SAFETY_CATEGORIES;
-
-const HARD_BLOCK_CATEGORIES = new Set<SafetyCategory>([
-  "CBRN_WEAPONS",
-  "CHILD_SAFETY_NONCONSENSUAL_SEXUAL_CONTENT",
-]);
-
-const safetyRefusal = (category: SafetyCategory): string => {
-  if (HARD_BLOCK_CATEGORIES.has(category)) {
-    return "FOUNDR can't help develop this idea. It falls outside what this tool will engage with. FOUNDR is built to validate lawful, non-harmful businesses. You can submit a different idea.";
-  }
-
-  return `FOUNDR can't help develop this idea. It describes a business centered on ${SAFETY_CATEGORIES[category]}, which falls outside what this tool will assist with. FOUNDR is built to validate lawful businesses. If you think this was flagged in error, you can submit a different idea.`;
-};
 
 export const classifyIdea = async (
   ideaSummary: string,
@@ -87,16 +62,15 @@ export const classifyIdea = async (
 
     if (verdict?.decision === "BLOCK") {
       if (
-        typeof verdict.category !== "string" ||
-        !Object.hasOwn(SAFETY_CATEGORIES, verdict.category)
+        !isSafetyCategory(verdict.category)
       ) {
         throw new Error("AI returned an unexpected safety category");
       }
-      const category = verdict.category as SafetyCategory;
+      const category: SafetyCategory = verdict.category;
       return {
         decision: "BLOCK",
         category,
-        reason: safetyRefusal(category),
+        reason: buildSafetyRefusal(category),
       };
     }
 

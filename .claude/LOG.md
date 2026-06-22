@@ -425,3 +425,38 @@ The new `.claude/GUARDRAIL.md` policy previously had no code behind it: no class
 - Real root cause: the debate wrapper was `flex-1` (flex-basis `0%`) inside non-height-capped ancestors (`Stage`/`main` are `min-h-screen`). Flexbox grew it to content height and IGNORED its own `xl:h-screen`, so `minmax(0,1fr)` resolved to content and nothing was bounded.
 - Fix (in `components/war-room/war-room-arena.tsx`): debate wrapper `xl:h-screen` → `xl:h-[100dvh] xl:flex-none` (flex-none lets the explicit viewport height win over flex-grow; 100dvh for mobile-chrome robustness). Kept `xl:min-h-0 xl:overflow-hidden` and the grid's `xl:grid-rows-[minmax(0,1fr)]` (both needed). Below-xl stacked path unchanged.
 - Probe re-measured after fix: docScrollH == viewport (page does NOT grow), rail fills 100vh and scrolls internally (scrollHeight 4472 in an 786px box, railScrolls true). Probe route + screenshots deleted. `tsc` clean after clearing stale `.next` types.
+
+## 2026-06-21 — Reasoning-based guardrail expansion + development stress lab
+
+Expanded the shipped idea-intake guardrail from nine coarse prohibited categories into an 18-category behavioral taxonomy. The classifier now reasons explicitly across the actual product/service, customers and affected non-customers, consent, authorization, operating mechanism, monetization, safeguards, questionnaire details, and foreseeable harm. It does not use keyword matching and does not require an explicit confession when the proposed operating details establish abuse.
+
+### Policy and classifier
+- Expanded `.claude/GUARDRAIL.md` with the decision threshold, limits/non-guarantee, dual-use comparisons, anti-evasion rules, mental-health/unusual-idea boundary, all 18 category identifiers, evaluation protocol, and current implementation truth (two-way `ALLOW`/`BLOCK`; no fictional human-review queue).
+- Added coverage for separate self-harm, exploitation/trafficking, child sexual safety, non-consensual sexual abuse, privacy/stalking, hate/discrimination, extremism, high-stakes rights violations, coercive manipulation, civic disinformation, reckless public safety, and animal/environmental harm categories.
+- Unusual, implausible, supernatural, conspiratorial, or disorganized language is never itself a reason to block. The classifier blocks the harmful behavior—such as stalking, coercion, fake treatment, or self/other harm—not a perceived mental-health condition.
+- Strengthened the prompt's internal reasoning procedure and precedence rules. Generic tools are not blocked merely because misuse is possible; harmful use must be the purpose, default behavior, marketed advantage, deliberately optimized capability, or integral operating method.
+- Centralized stable category labels, validation, hard-block identifiers, and server-owned refusal copy in `frontend/lib/safety-policy.ts`. Model-written refusal prose is still discarded.
+
+### Auth0-free development replica
+- Added `/guardrail-lab`, a faithful idea/context intake surface that calls the exact production `classifyIdea()` action without question generation, persistence, session creation, or Auth0.
+- Added a development-only server-action wrapper with payload length/type validation. Both the page and action refuse outside `NODE_ENV=development`; the production page returns 404.
+- The lab supports arbitrary idea + later questionnaire context, a 9-case quick run, a 46-case full run, stop-after-current behavior, decision/category accuracy, provider error counts, and quota pacing.
+- Added `npm run test:guardrail:quick` and `npm run test:guardrail` CLI entry points plus an `--id=<case>` targeted mode.
+
+### Adversarial suite and iteration
+- Added 46 canonical cases: 18 benign near-neighbors and 28 blocked cases spanning every category. Coverage includes euphemism, prompt injection, fictional/research framing, Spanish input, intent hidden in questionnaire answers, authorization/consent distinctions, and harmless-versus-harmful unusual-belief cases.
+- Initial quick run: 9/9 decisions, 5/5 categories.
+- First full run returned correct decisions for all 45 completed verdicts; one stalkerware case failed closed during provider quota/safety fallback, and two overlapping cases used less-specific categories. No unsafe input proceeded.
+- Iterated by pacing evaluation calls, making category precedence explicit, and aligning the forged-document test with the direct fraud category. The isolated provider failure then passed.
+- Final paced live run: **46/46 expected decisions, 28/28 expected categories, zero provider errors**. All 18 benign near-neighbors remained allowed.
+
+### Verification
+- Development smoke: `/guardrail-lab` → 200 without auth; `/war-room` → 307 to Auth0.
+- Production smoke after `npm run build`: `/guardrail-lab` → 404.
+- `npx tsc --noEmit` → clean.
+- Targeted ESLint across every changed/new TypeScript file → clean with zero warnings.
+- `git diff --check` → clean.
+- `npm run build` → clean; 13 static/dynamic routes generated.
+
+### Remaining production work
+- The suite is a regression benchmark, not proof of universal coverage. A production launch still needs policy/model versioned audit events, abuse/rate monitoring, jurisdiction-specific legal review, and a real appeal/human-review path. The lab deliberately persists no test submissions.

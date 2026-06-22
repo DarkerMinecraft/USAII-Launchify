@@ -26,15 +26,35 @@ export type QA = {
 
 export type SafetyDecision = "ALLOW" | "BLOCK";
 
+export type SafetyCategory =
+  | "ILLEGAL_GOODS_SERVICES"
+  | "VIOLENCE_PHYSICAL_HARM"
+  | "CBRN_WEAPONS"
+  | "SELF_HARM_EATING_DISORDER"
+  | "EXPLOITATION_COERCION_TRAFFICKING"
+  | "CHILD_SAFETY_SEXUAL_ABUSE"
+  | "SEXUAL_ABUSE_NONCONSENSUAL_CONTENT"
+  | "FRAUD_DECEPTION_IMPERSONATION"
+  | "CYBER_HARM"
+  | "PRIVACY_STALKING_SURVEILLANCE"
+  | "HATE_HARASSMENT_DISCRIMINATION"
+  | "EXTREMISM_TERRORISM"
+  | "REGULATORY_PROFESSIONAL_HARM"
+  | "HIGH_STAKES_RIGHTS_VIOLATION"
+  | "MANIPULATION_VULNERABILITY_EXPLOITATION"
+  | "CIVIC_DISINFORMATION"
+  | "RECKLESS_PUBLIC_SAFETY"
+  | "ANIMAL_ENVIRONMENTAL_HARM";
+
 export type SafetyVerdict = {
   decision: SafetyDecision;
-  category: string | null;
+  category: SafetyCategory | null;
   reason: string;
 };
 
 export type SafetyBlockResult = {
   status: "BLOCK";
-  category: string;
+  category: SafetyCategory;
   reason: string;
 };
 
